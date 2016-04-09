@@ -1,0 +1,7 @@
+menu "GN_RM_LK support"
+
+config GN_RM_LK
+	bool "GN_RM_LK"
+	default n
+
+endmenu
