@@ -103,6 +103,7 @@
 		mdss_fb0: qcom,mdss_fb_primary {
 			cell-index = <0>;
 			compatible = "qcom,mdss-fb";
+			qcom,mdss-fb-split = <720 720>;
 			qcom,memory-reservation-type = "EBI1";
 			qcom,memory-reservation-size = <0x2000000>;
 			qcom,memblock-reserve = <0x03200000 0x01E00000>;
