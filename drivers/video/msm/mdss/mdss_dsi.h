@@ -256,6 +256,9 @@ struct mdss_dsi_ctrl_pdata {
 	int irq_cnt;
 	int mdss_dsi_clk_on;
 	int rst_gpio;
+	#ifdef CONFIG_IUNI_U3
+	int iovcc_enable_gpio;
+	#endif
 	int disp_en_gpio;
 	int disp_te_gpio;
 	int mode_gpio;

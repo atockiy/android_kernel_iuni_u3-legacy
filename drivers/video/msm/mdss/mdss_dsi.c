@@ -1302,6 +1302,34 @@ int dsi_panel_device_register(struct device_node *pan_node,
 					ctrl_pdata->disp_te_gpio);
 	}
 
+#if defined(CONFIG_IUNI_U3)
+ctrl_pdata->iovcc_enable_gpio = of_get_named_gpio(ctrl_pdev->dev.of_node,
+"qcom,iovcc-enable-gpio", 0);
+if (gpio_is_valid(ctrl_pdata->iovcc_enable_gpio)) {
+rc = gpio_request(ctrl_pdata->iovcc_enable_gpio, "iovcc_enable");
+if (rc) {
+			pr_err("request IOVCC_GPIO failed, rc=%d\n", rc);
+			return -ENODEV;
+}
+rc = gpio_tlmm_config(GPIO_CFG(
+					ctrl_pdata->iovcc_enable_gpio, 0,
+					GPIO_CFG_INPUT,
+					GPIO_CFG_NO_PULL,
+					GPIO_CFG_8MA),
+					GPIO_CFG_DISABLE);
+if (rc) {
+			pr_err("%s: unable to config iovcc tlmm = %d\n",
+					__func__, ctrl_pdata->iovcc_enable_gpio);
+			gpio_free(ctrl_pdata->iovcc_enable_gpio);
+			return -ENODEV;
+}
+} else {
+		pr_err("%s:%d, iovcc en gpio not specified\n",
+						__func__, __LINE__);
+}
+
+#endif
+
 #if defined(CONFIG_GN_Q_BSP_LCD_TPS65132_SUPPORT)
 	ctrl_pdata->tps_en_gpio = of_get_named_gpio(ctrl_pdev->dev.of_node,
 						 "qcom,tps-enable-gpio", 0);
@@ -1311,7 +1339,7 @@ int dsi_panel_device_register(struct device_node *pan_node,
 	} else {
 		rc = gpio_request(ctrl_pdata->tps_en_gpio, "tps_enable");
 		if (rc) {
-			pr_err("request reset gpio failed, rc=%d\n",
+			pr_err("request tps reset gpio failed, rc=%d\n",
 				rc);
 			gpio_free(ctrl_pdata->tps_en_gpio);
 			if (gpio_is_valid(ctrl_pdata->disp_en_gpio))

@@ -240,7 +240,11 @@ void mdss_dsi_panel_reset(struct mdss_panel_data *pdata, int enable)
 			set_vol_tps65132_nagetive();
 		}
 #endif
-
+#ifdef CONFIG_IUNI_U3
+			if (gpio_is_valid(ctrl_pdata->iovcc_enable_gpio)) {
+				gpio_direction_output(ctrl_pdata->iovcc_enable_gpio, 1);
+			}
+#endif
 		for (i = 0; i < pdata->panel_info.rst_seq_len; ++i) {
 			gpio_set_value((ctrl_pdata->rst_gpio),
 				pdata->panel_info.rst_seq[i]);
@@ -263,10 +267,11 @@ void mdss_dsi_panel_reset(struct mdss_panel_data *pdata, int enable)
 		}
 
 	} else {
-		if (gpio_is_valid(ctrl_pdata->disp_en_gpio)) {
-			gpio_set_value((ctrl_pdata->disp_en_gpio), 0);
-			gpio_free(ctrl_pdata->disp_en_gpio);
+#ifdef CONFIG_IUNI_U3
+		if (gpio_is_valid(ctrl_pdata->iovcc_enable_gpio)) {
+			gpio_direction_output(ctrl_pdata->iovcc_enable_gpio, 0);
 		}
+#endif
 		
 #if defined(CONFIG_GN_Q_BSP_LCD_TPS65132_SUPPORT)
 		mdelay(10); // add for IC request
