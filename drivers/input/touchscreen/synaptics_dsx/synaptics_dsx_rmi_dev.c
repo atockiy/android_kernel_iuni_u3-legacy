@@ -1,7 +1,7 @@
 /*
  * Synaptics DSX touchscreen driver
  *
- * Copyright (C) 2012 Synaptics Incorporated
+ * Copyright (C) 2012-2015 Synaptics Incorporated. All rights reserved.
  *
  * Copyright (C) 2012 Alexandra Chin <alexandra.chin@tw.synaptics.com>
  * Copyright (C) 2012 Scott Lin <scott.lin@tw.synaptics.com>
@@ -15,7 +15,22 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU General Public License for more details.
+ *
+ * INFORMATION CONTAINED IN THIS DOCUMENT IS PROVIDED "AS-IS," AND SYNAPTICS
+ * EXPRESSLY DISCLAIMS ALL EXPRESS AND IMPLIED WARRANTIES, INCLUDING ANY
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE,
+ * AND ANY WARRANTIES OF NON-INFRINGEMENT OF ANY INTELLECTUAL PROPERTY RIGHTS.
+ * IN NO EVENT SHALL SYNAPTICS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, PUNITIVE, OR CONSEQUENTIAL DAMAGES ARISING OUT OF OR IN CONNECTION
+ * WITH THE USE OF THE INFORMATION CONTAINED IN THIS DOCUMENT, HOWEVER CAUSED
+ * AND BASED ON ANY THEORY OF LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+ * NEGLIGENCE OR OTHER TORTIOUS ACTION, AND EVEN IF SYNAPTICS WAS ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGE. IF A TRIBUNAL OF COMPETENT JURISDICTION DOES
+ * NOT PERMIT THE DISCLAIMER OF DIRECT DAMAGES OR ANY OTHER DAMAGES, SYNAPTICS'
+ * TOTAL CUMULATIVE LIABILITY TO ANY PARTY SHALL NOT EXCEED ONE HUNDRED U.S.
+ * DOLLARS.
  */
+
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/slab.h>
@@ -69,6 +84,12 @@ static ssize_t rmidev_sysfs_intr_mask_show(struct device *dev,
 static ssize_t rmidev_sysfs_intr_mask_store(struct device *dev,
 		struct device_attribute *attr, const char *buf, size_t count);
 
+static ssize_t rmidev_sysfs_concurrent_show(struct device *dev,
+		struct device_attribute *attr, char *buf);
+
+static ssize_t rmidev_sysfs_concurrent_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t count);
+
 struct rmidev_handle {
 	dev_t dev_no;
 	pid_t pid;
@@ -82,7 +103,7 @@ struct rmidev_handle {
 	struct siginfo terminate_signal;
 	struct task_struct *task;
 	void *data;
-	bool irq_enabled;
+	bool concurrent;
 };
 
 struct rmidev_data {
@@ -122,6 +143,9 @@ static struct device_attribute attrs[] = {
 	__ATTR(intr_mask, S_IRUGO | S_IWUGO,
 			rmidev_sysfs_intr_mask_show,
 			rmidev_sysfs_intr_mask_store),
+	__ATTR(concurrent, S_IRUGO | S_IWUGO,
+			rmidev_sysfs_concurrent_show,
+			rmidev_sysfs_concurrent_store),
 };
 
 static int rmidev_major_num;
@@ -147,11 +171,18 @@ static int rmidev_sysfs_irq_enable(struct synaptics_rmi4_data *rmi4_data,
 {
 	int retval = 0;
 	unsigned char intr_status[MAX_INTR_REGISTERS];
-	unsigned long irq_flags = IRQF_TRIGGER_FALLING | IRQF_TRIGGER_RISING;
+	unsigned long irq_flags = IRQF_TRIGGER_FALLING | IRQF_TRIGGER_RISING |
+			IRQF_ONESHOT;
+
+	mutex_lock(&(rmi4_data->rmi4_irq_enable_mutex));
 
 	if (enable) {
-		if (rmidev->irq_enabled)
-			return retval;
+		if (rmi4_data->irq_enabled) {
+			dev_err(rmi4_data->pdev->dev.parent,
+					"%s: Interrupt already enabled\n",
+					__func__);
+			goto exit;
+		}
 
 		/* Clear interrupts first */
 		retval = synaptics_rmi4_reg_read(rmi4_data,
@@ -159,7 +190,7 @@ static int rmidev_sysfs_irq_enable(struct synaptics_rmi4_data *rmi4_data,
 				intr_status,
 				rmi4_data->num_of_intr_regs);
 		if (retval < 0)
-			return retval;
+			goto exit;
 
 		retval = request_threaded_irq(rmi4_data->irq, NULL,
 				rmidev_sysfs_irq, irq_flags,
@@ -168,17 +199,20 @@ static int rmidev_sysfs_irq_enable(struct synaptics_rmi4_data *rmi4_data,
 			dev_err(rmi4_data->pdev->dev.parent,
 					"%s: Failed to create irq thread\n",
 					__func__);
-			return retval;
+			goto exit;
 		}
 
-		rmidev->irq_enabled = true;
+		rmi4_data->irq_enabled = true;
 	} else {
-		if (rmidev->irq_enabled) {
+		if (rmi4_data->irq_enabled) {
 			disable_irq(rmi4_data->irq);
 			free_irq(rmi4_data->irq, rmi4_data);
-			rmidev->irq_enabled = false;
+			rmi4_data->irq_enabled = false;
 		}
 	}
+
+exit:
+	mutex_unlock(&(rmi4_data->rmi4_irq_enable_mutex));
 
 	return retval;
 }
@@ -188,9 +222,14 @@ static ssize_t rmidev_sysfs_data_show(struct file *data_file,
 		char *buf, loff_t pos, size_t count)
 {
 	int retval;
+	unsigned char intr_status = 0;
 	unsigned int length = (unsigned int)count;
 	unsigned short address = (unsigned short)pos;
+	struct synaptics_rmi4_fn *fhandler;
+	struct synaptics_rmi4_device_info *rmi;
 	struct synaptics_rmi4_data *rmi4_data = rmidev->rmi4_data;
+
+	rmi = &(rmi4_data->rmi4_mod_info);
 
 	if (length > (REG_ADDR_LIMIT - address)) {
 		dev_err(rmi4_data->pdev->dev.parent,
@@ -214,6 +253,29 @@ static ssize_t rmidev_sysfs_data_show(struct file *data_file,
 		return -EINVAL;
 	}
 
+	if (!rmidev->concurrent)
+		goto exit;
+
+	if (address != rmi4_data->f01_data_base_addr)
+		goto exit;
+
+	if (length <= 1)
+		goto exit;
+
+	intr_status = buf[1];
+
+	if (!list_empty(&rmi->support_fn_list)) {
+		list_for_each_entry(fhandler, &rmi->support_fn_list, link) {
+			if (fhandler->num_of_data_sources) {
+				if (fhandler->intr_mask & intr_status) {
+					rmi4_data->report_touch(rmi4_data,
+							fhandler);
+				}
+			}
+		}
+	}
+
+exit:
 	return length;
 }
 
@@ -295,11 +357,6 @@ static ssize_t rmidev_sysfs_release_store(struct device *dev,
 		return -EINVAL;
 
 	rmidev_sysfs_irq_enable(rmi4_data, false);
-	rmi4_data->irq_enable(rmi4_data, true, false);
-
-	dev_dbg(rmi4_data->pdev->dev.parent,
-			"%s: Attention interrupt enabled\n",
-			__func__);
 
 	rmi4_data->reset_device(rmi4_data, false);
 
@@ -383,6 +440,25 @@ static ssize_t rmidev_sysfs_intr_mask_store(struct device *dev,
 		return -EINVAL;
 
 	rmidev->intr_mask = (unsigned char)input;
+
+	return count;
+}
+
+static ssize_t rmidev_sysfs_concurrent_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	return snprintf(buf, PAGE_SIZE, "%d\n", rmidev->concurrent);
+}
+
+static ssize_t rmidev_sysfs_concurrent_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t count)
+{
+	unsigned int input;
+
+	if (sscanf(buf, "%u", &input) != 1)
+		return -EINVAL;
+
+	rmidev->concurrent = input > 0 ? true : false;
 
 	return count;
 }
@@ -475,7 +551,14 @@ static ssize_t rmidev_read(struct file *filp, char __user *buf,
 		size_t count, loff_t *f_pos)
 {
 	ssize_t retval;
+	unsigned char intr_status = 0;
+	unsigned short address;
 	struct rmidev_data *dev_data = filp->private_data;
+	struct synaptics_rmi4_fn *fhandler;
+	struct synaptics_rmi4_device_info *rmi;
+	struct synaptics_rmi4_data *rmi4_data = rmidev->rmi4_data;
+
+	rmi = &(rmi4_data->rmi4_mod_info);
 
 	if (IS_ERR(dev_data)) {
 		pr_err("%s: Pointer of char device data is invalid", __func__);
@@ -487,6 +570,8 @@ static ssize_t rmidev_read(struct file *filp, char __user *buf,
 
 	if (count > (REG_ADDR_LIMIT - *f_pos))
 		count = REG_ADDR_LIMIT - *f_pos;
+
+	address = (unsigned short)(*f_pos);
 
 	rmidev_allocate_buffer(count);
 
@@ -503,6 +588,28 @@ static ssize_t rmidev_read(struct file *filp, char __user *buf,
 		retval = -EFAULT;
 	else
 		*f_pos += retval;
+
+	if (!rmidev->concurrent)
+		goto clean_up;
+
+	if (address != rmi4_data->f01_data_base_addr)
+		goto clean_up;
+
+	if (count <= 1)
+		goto clean_up;
+
+	intr_status = rmidev->tmpbuf[1];
+
+	if (!list_empty(&rmi->support_fn_list)) {
+		list_for_each_entry(fhandler, &rmi->support_fn_list, link) {
+			if (fhandler->num_of_data_sources) {
+				if (fhandler->intr_mask & intr_status) {
+					rmi4_data->report_touch(rmi4_data,
+							fhandler);
+				}
+			}
+		}
+	}
 
 clean_up:
 	mutex_unlock(&(dev_data->file_mutex));
@@ -607,16 +714,11 @@ static int rmidev_release(struct inode *inp, struct file *filp)
 	if (dev_data->ref_count < 0)
 		dev_data->ref_count = 0;
 
-	rmi4_data->irq_enable(rmi4_data, true, false);
-	dev_dbg(rmi4_data->pdev->dev.parent,
-			"%s: Attention interrupt enabled\n",
-			__func__);
-
-	mutex_unlock(&(dev_data->file_mutex));
-
 	rmi4_data->reset_device(rmi4_data, false);
 
 	rmi4_data->stay_awake = false;
+
+	mutex_unlock(&(dev_data->file_mutex));
 
 	return 0;
 }
@@ -653,7 +755,7 @@ static void rmidev_device_cleanup(struct rmidev_data *dev_data)
 	return;
 }
 
-static char *rmi_char_devnode(struct device *dev, mode_t *mode)
+static char *rmi_char_devnode(struct device *dev, umode_t *mode)
 {
 	if (!mode)
 		return NULL;
@@ -665,6 +767,9 @@ static char *rmi_char_devnode(struct device *dev, mode_t *mode)
 
 static int rmidev_create_device_class(void)
 {
+	if (rmidev_device_class != NULL)
+		return 0;
+
 	rmidev_device_class = class_create(THIS_MODULE, DEVICE_CLASS_NAME);
 
 	if (IS_ERR(rmidev_device_class)) {
@@ -699,6 +804,13 @@ static int rmidev_init_device(struct synaptics_rmi4_data *rmi4_data)
 	struct device *device_ptr;
 	const struct synaptics_dsx_board_data *bdata =
 			rmi4_data->hw_if->board_data;
+
+	if (rmidev) {
+		dev_dbg(rmi4_data->pdev->dev.parent,
+				"%s: Handle already exists\n",
+				__func__);
+		return 0;
+	}
 
 	rmidev = kzalloc(sizeof(*rmidev), GFP_KERNEL);
 	if (!rmidev) {
@@ -851,7 +963,10 @@ err_dev_data:
 	unregister_chrdev_region(dev_no, 1);
 
 err_device_region:
-	class_destroy(rmidev_device_class);
+	if (rmidev_device_class != NULL) {
+		class_destroy(rmidev_device_class);
+		rmidev_device_class = NULL;
+	}
 
 err_device_class:
 	kfree(rmidev);
@@ -888,7 +1003,10 @@ static void rmidev_remove_device(struct synaptics_rmi4_data *rmi4_data)
 
 	unregister_chrdev_region(rmidev->dev_no, 1);
 
-	class_destroy(rmidev_device_class);
+	if (rmidev_device_class != NULL) {
+		class_destroy(rmidev_device_class);
+		rmidev_device_class = NULL;
+	}
 
 	kfree(rmidev->tmpbuf);
 

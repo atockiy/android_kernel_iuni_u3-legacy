@@ -16,59 +16,38 @@
 		status = "okay";
 		qcom,rgb_0 {
 			label = "rgb";
-			linux,name = "red";
+			linux,name = "led:rgb_red";
 			qcom,mode = "pwm";
 			qcom,pwm-channel = <6>;
 			qcom,pwm-us = <1000>;
 			qcom,max-current = <12>;
 			qcom,default-state = "off";
 			qcom,id = <3>;
-			qcom,use-blink;
-			qcom,start-idx = <1>;
-			qcom,duty-pcts = [95 95 95 95 95 95 95 95 95 95];
-			/*linux,default-trigger =
-				"battery-charging";*/
-			qcom,pause-lo = <0>;
-			qcom,pause-hi = <0>;
-			qcom,ramp-step-ms = <500>;
-			qcom,lut-flags = <3>;
+			linux,default-trigger =
+				"battery-charging";
 		};
 
 		qcom,rgb_1 {
 			label = "rgb";
-			linux,name = "green";
+			linux,name = "led:rgb_green";
 			qcom,mode = "pwm";
 			qcom,pwm-channel = <5>;
 			qcom,pwm-us = <1000>;
 			qcom,max-current = <12>;
 			qcom,default-state = "off";
 			qcom,id = <4>;
-			/*linux,default-trigger = "battery-full";*/
-			qcom,use-blink;
-			qcom,start-idx = <1>;
-			qcom,duty-pcts = [95 95 95 95 95 95 95 95 95 95];
-			qcom,pause-lo = <0>;
-			qcom,pause-hi = <0>;
-			qcom,ramp-step-ms = <500>;
-			qcom,lut-flags = <3>;
+			linux,default-trigger = "battery-full";
 		};
 
 		qcom,rgb_2 {
 			label = "rgb";
-			linux,name = "blue";
+			linux,name = "led:rgb_blue";
 			qcom,mode = "pwm";
 			qcom,pwm-channel = <4>;
 			qcom,pwm-us = <1000>;
 			qcom,max-current = <12>;
 			qcom,id = <5>;
 			status = "disabled";
-			qcom,use-blink;
-			qcom,start-idx = <1>;
-			qcom,duty-pcts = [95 95 95 95 95 95 95 95 95 95];
-			qcom,pause-lo = <0>;
-			qcom,pause-hi = <0>;
-			qcom,ramp-step-ms = <500>;
-			qcom,lut-flags = <3>;
 		};
 	};
 
@@ -95,7 +74,7 @@
 				"flash0_trigger";
 			qcom,id = <1>;
 			linux,name = "led:flash_0";
-			qcom,current = <450>;
+			qcom,current = <625>;
 		};
 
 		pm8941_flash1: qcom,flash_1 {
@@ -111,7 +90,7 @@
 			label = "flash";
 			qcom,id = <2>;
 			linux,name = "led:flash_1";
-			qcom,current = <450>;
+			qcom,current = <625>;
 		};
 
 		pm8941_torch: qcom,flash_torch {
@@ -124,7 +103,7 @@
 			label = "flash";
 			qcom,id = <2>;
 			linux,name = "led:flash_torch";
-			qcom,current = <150>;
+			qcom,current = <90>;
 			qcom,torch-enable;
 		};
 	};
@@ -159,31 +138,30 @@
 			qcom,row-id = <0>;
 			qcom,row-src-en;
 			qcom,always-on;
-			/*qcom,start-idx = <1>;
+			qcom,start-idx = <1>;
 			qcom,ramp-step-ms = <120>;
 			qcom,duty-pcts = [00 00 00 00 64
 					64 00 00 00 00];
 			qcom,use-blink;
-			qcom,in-order-command-processing;*/
+			qcom,in-order-command-processing;
 		};
 
 		qcom,kpdbl2 {
 			label = "kpdbl";
-			linux,name = "kpdbl-lut-2"; //kpdbl-pwm-2
-			qcom,mode = "lpg";//pwm
+			linux,name = "kpdbl-pwm-2";
+			qcom,mode = "pwm";
 			qcom,pwm-channel = <9>;
 			qcom,pwm-us = <1000>;
-			qcom,start-idx = <1>;
-			qcom,duty-pcts = [00 00 00 00 64
-                             64 00 00 00 00];
 			qcom,id = <7>;
 			qcom,max-current = <20>;
 			qcom,row-id = <1>;
 			qcom,row-src-en;
-                        
-                        /*qcom,ramp-step-ms = <120>;
-                        qcom,use-blink;*/
-                        /*qcom,in-order-command-processing;*/
+                        qcom,start-idx = <1>;
+                        qcom,ramp-step-ms = <120>;
+                        qcom,duty-pcts = [00 00 00 00 64
+                                        64 00 00 00 00];
+                        qcom,use-blink;
+                        qcom,in-order-command-processing;
 
 		};
 
@@ -197,12 +175,12 @@
 			qcom,max-current = <20>;
 			qcom,row-id = <2>;
 			qcom,row-src-en;
-                       /* qcom,start-idx = <1>;
+                        qcom,start-idx = <1>;
                         qcom,ramp-step-ms = <120>;
                         qcom,duty-pcts = [00 00 00 00 64
                                         64 00 00 00 00];
                         qcom,use-blink;
-                        qcom,in-order-command-processing;*/
+                        qcom,in-order-command-processing;
 
 		};
 
@@ -216,12 +194,12 @@
 			qcom,max-current = <20>;
 			qcom,row-id = <3>;
 			qcom,row-src-en;
-                        /*qcom,start-idx = <1>;
+                        qcom,start-idx = <1>;
                         qcom,ramp-step-ms = <120>;
                         qcom,duty-pcts = [00 00 00 00 64
                                         64 00 00 00 00];
                         qcom,use-blink;
-                        qcom,in-order-command-processing;*/
+                        qcom,in-order-command-processing;
 
 		};
 	};

@@ -1,7 +1,7 @@
 /*
  * Synaptics DSX touchscreen driver
  *
- * Copyright (C) 2012 Synaptics Incorporated
+ * Copyright (C) 2012-2015 Synaptics Incorporated. All rights reserved.
  *
  * Copyright (C) 2012 Alexandra Chin <alexandra.chin@tw.synaptics.com>
  * Copyright (C) 2012 Scott Lin <scott.lin@tw.synaptics.com>
@@ -15,7 +15,22 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU General Public License for more details.
+ *
+ * INFORMATION CONTAINED IN THIS DOCUMENT IS PROVIDED "AS-IS," AND SYNAPTICS
+ * EXPRESSLY DISCLAIMS ALL EXPRESS AND IMPLIED WARRANTIES, INCLUDING ANY
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE,
+ * AND ANY WARRANTIES OF NON-INFRINGEMENT OF ANY INTELLECTUAL PROPERTY RIGHTS.
+ * IN NO EVENT SHALL SYNAPTICS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, PUNITIVE, OR CONSEQUENTIAL DAMAGES ARISING OUT OF OR IN CONNECTION
+ * WITH THE USE OF THE INFORMATION CONTAINED IN THIS DOCUMENT, HOWEVER CAUSED
+ * AND BASED ON ANY THEORY OF LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+ * NEGLIGENCE OR OTHER TORTIOUS ACTION, AND EVEN IF SYNAPTICS WAS ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGE. IF A TRIBUNAL OF COMPETENT JURISDICTION DOES
+ * NOT PERMIT THE DISCLAIMER OF DIRECT DAMAGES OR ANY OTHER DAMAGES, SYNAPTICS'
+ * TOTAL CUMULATIVE LIABILITY TO ANY PARTY SHALL NOT EXCEED ONE HUNDRED U.S.
+ * DOLLARS.
  */
+
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/slab.h>
@@ -27,15 +42,17 @@
 
 #define SYSFS_FOLDER_NAME "video"
 
+/*
+#define RMI_DCS_SUSPEND_RESUME
+*/
+
 static ssize_t video_sysfs_dcs_write_store(struct device *dev,
 		struct device_attribute *attr, const char *buf, size_t count);
 
-static int video_send_dcs_command(unsigned char command_opcode);
+static ssize_t video_sysfs_param_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t count);
 
-struct dcs_command {
-	unsigned char command;
-	unsigned int wait_time;
-};
+static int video_send_dcs_command(unsigned char command_opcode);
 
 struct f38_command {
 	union {
@@ -56,6 +73,7 @@ struct f38_command {
 };
 
 struct synaptics_rmi4_video_handle {
+	unsigned char param;
 	unsigned short query_base_addr;
 	unsigned short control_base_addr;
 	unsigned short data_base_addr;
@@ -64,10 +82,10 @@ struct synaptics_rmi4_video_handle {
 	struct kobject *sysfs_dir;
 };
 
-static struct device_attribute attrs[] = {
-	__ATTR(dcs_write, S_IWUGO,
-			synaptics_rmi4_show_error,
-			video_sysfs_dcs_write_store),
+#ifdef RMI_DCS_SUSPEND_RESUME
+struct dcs_command {
+	unsigned char command;
+	unsigned int wait_time;
 };
 
 static struct dcs_command suspend_sequence[] = {
@@ -79,6 +97,27 @@ static struct dcs_command suspend_sequence[] = {
 		.command = 0x10,
 		.wait_time = 200,
 	},
+};
+
+static struct dcs_command resume_sequence[] = {
+	{
+		.command = 0x11,
+		.wait_time = 200,
+	},
+	{
+		.command = 0x29,
+		.wait_time = 200,
+	},
+};
+#endif
+
+static struct device_attribute attrs[] = {
+	__ATTR(dcs_write, S_IWUGO,
+			synaptics_rmi4_show_error,
+			video_sysfs_dcs_write_store),
+	__ATTR(param, S_IWUGO,
+			synaptics_rmi4_show_error,
+			video_sysfs_param_store),
 };
 
 static struct synaptics_rmi4_video_handle *video;
@@ -101,6 +140,19 @@ static ssize_t video_sysfs_dcs_write_store(struct device *dev,
 	return count;
 }
 
+static ssize_t video_sysfs_param_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t count)
+{
+	unsigned int input;
+
+	if (sscanf(buf, "%x", &input) != 1)
+		return -EINVAL;
+
+	video->param = (unsigned char)input;
+
+	return count;
+}
+
 static int video_send_dcs_command(unsigned char command_opcode)
 {
 	int retval;
@@ -110,7 +162,10 @@ static int video_send_dcs_command(unsigned char command_opcode)
 	memset(&command, 0x00, sizeof(command));
 
 	command.command_opcode = command_opcode;
+	command.parameter_field_1 = video->param;
 	command.send_to_dcs = 1;
+
+	video->param = 0;
 
 	retval = synaptics_rmi4_reg_write(rmi4_data,
 			video->command_base_addr,
@@ -178,6 +233,13 @@ static int synaptics_rmi4_video_init(struct synaptics_rmi4_data *rmi4_data)
 {
 	int retval;
 	unsigned char attr_count;
+
+	if (video) {
+		dev_dbg(rmi4_data->pdev->dev.parent,
+				"%s: Handle already exists\n",
+				__func__);
+		return 0;
+	}
 
 	video = kzalloc(sizeof(*video), GFP_KERNEL);
 	if (!video) {
@@ -264,6 +326,7 @@ static void synaptics_rmi4_video_reset(struct synaptics_rmi4_data *rmi4_data)
 	return;
 }
 
+#ifdef RMI_DCS_SUSPEND_RESUME
 static void synaptics_rmi4_video_suspend(struct synaptics_rmi4_data *rmi4_data)
 {
 	int retval;
@@ -287,6 +350,30 @@ static void synaptics_rmi4_video_suspend(struct synaptics_rmi4_data *rmi4_data)
 	return;
 }
 
+static void synaptics_rmi4_video_resume(struct synaptics_rmi4_data *rmi4_data)
+{
+	int retval;
+	unsigned char ii;
+	unsigned char command;
+	unsigned char num_of_cmds;
+
+	if (!video)
+		return;
+
+	num_of_cmds = ARRAY_SIZE(resume_sequence);
+
+	for (ii = 0; ii < num_of_cmds; ii++) {
+		command = resume_sequence[ii].command;
+		retval = video_send_dcs_command(command);
+		if (retval < 0)
+			return;
+		msleep(resume_sequence[ii].wait_time);
+	}
+
+	return;
+}
+#endif
+
 static struct synaptics_rmi4_exp_fn video_module = {
 	.fn_type = RMI_VIDEO,
 	.init = synaptics_rmi4_video_init,
@@ -294,8 +381,13 @@ static struct synaptics_rmi4_exp_fn video_module = {
 	.reset = synaptics_rmi4_video_reset,
 	.reinit = NULL,
 	.early_suspend = NULL,
+#ifdef RMI_DCS_SUSPEND_RESUME
 	.suspend = synaptics_rmi4_video_suspend,
+	.resume = synaptics_rmi4_video_resume,
+#else
+	.suspend = NULL,
 	.resume = NULL,
+#endif
 	.late_resume = NULL,
 	.attn = NULL,
 };

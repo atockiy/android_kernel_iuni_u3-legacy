@@ -50,7 +50,7 @@
 			reg = <0x0>;
 			// The currents(uA) correspond to the frequencies in the
 			// frequency table.
-			/*current = < 57900 //300000 kHz
+			current = < 57900 //300000 kHz
 			            88200 //422400 kHz
 			            99600 //652800 kHz
 			            138800 //729600 kHz
@@ -63,7 +63,7 @@
 			            266400 //1574000 kHz
 			            287700 //1728000 kHz
 			            325700 //1958400 kHz
-			            386200>; //2265600 kHz*/
+			            386200>; //2265600 kHz
 		};
 
 		CPU1: cpu@1 {
@@ -72,7 +72,7 @@
 			reg = <0x1>;
 			// The currents(uA) correspond to the frequencies in the
 			// frequency table.
-			/*current = < 23739 //300000 kHz
+			current = < 23739 //300000 kHz
 			            36162 //422400 kHz
 			            40836 //652800 kHz
 			            56908 //729600 kHz
@@ -85,7 +85,7 @@
 			            109224 //1574000 kHz
 			            117957 //1728000 kHz
 			            133537 //1958400 kHz
-			            158342>; //2265600 kHz*/
+			            158342>; //2265600 kHz
 		};
 
 		CPU2: cpu@2 {
@@ -94,7 +94,7 @@
 			reg = <0x2>;
 			// The currents(uA) correspond to the frequencies in the
 			// frequency table.
-			/*current = < 27213 //300000 kHz
+			current = < 27213 //300000 kHz
 			            41454 //422400 kHz
 			            46812 //652800 kHz
 			            65235 //729600 kHz
@@ -107,7 +107,7 @@
 			            125208 //1574000 kHz
 			            135219 //1728000 kHz
 			            153079 //1958400 kHz
-			            181514>; //2265600 kHz*/
+			            181514>; //2265600 kHz
 		};
 
 		CPU3: cpu@3 {
@@ -116,7 +116,7 @@
 			reg = <0x3>;
 			// The currents(uA) correspond to the frequencies in the
 			// frequency table.
-			/*current = < 31266 //300000 kHz
+			current = < 31266 //300000 kHz
 			            47628 //422400 kHz
 			            53784 //652800 kHz
 			            74952 //729600 kHz
@@ -129,7 +129,7 @@
 			            143856 //1574000 kHz
 			            155358 //1728000 kHz
 			            175878 //1958400 kHz
-			            208548>; //2265600 kHz*/
+			            208548>; //2265600 kHz
 		};
 	};
 
@@ -2323,17 +2323,17 @@
 		};
 	};
 
-	qcom,msm-thermal {
-		compatible = "qcom,msm-thermal";
-		qcom,sensor-id = <5>;
-		qcom,poll-ms = <250>;
-		qcom,limit-temp = <60>;
-		qcom,temp-hysteresis = <10>;
-		//qcom,therm-reset-temp = <115>;
-		qcom,freq-step = <2>;
-		qcom,freq-control-mask = <0xf>;
-		qcom,core-limit-temp = <80>;
-		qcom,core-temp-hysteresis = <10>;
+ 	qcom,msm-thermal {
+  		compatible = "qcom,msm-thermal";
+  		qcom,sensor-id = <5>;
+  		qcom,poll-ms = <250>;
+		qcom,limit-temp = <65>;
+  		qcom,temp-hysteresis = <5>;
+		qcom,therm-reset-temp = <115>;
+  		qcom,freq-step = <2>;
+  		qcom,freq-control-mask = <0xf>;
+  		qcom,core-limit-temp = <80>;
+		qcom,core-temp-hysteresis = <5>;
 		qcom,core-control-mask = <0xe>;
 		qcom,hotplug-temp = <110>;
 		qcom,hotplug-temp-hysteresis = <20>;

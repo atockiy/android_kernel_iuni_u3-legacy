@@ -1,7 +1,7 @@
 /*
  * Synaptics DSX touchscreen driver
  *
- * Copyright (C) 2012 Synaptics Incorporated
+ * Copyright (C) 2012-2015 Synaptics Incorporated. All rights reserved.
  *
  * Copyright (C) 2012 Alexandra Chin <alexandra.chin@tw.synaptics.com>
  * Copyright (C) 2012 Scott Lin <scott.lin@tw.synaptics.com>
@@ -15,7 +15,22 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU General Public License for more details.
+ *
+ * INFORMATION CONTAINED IN THIS DOCUMENT IS PROVIDED "AS-IS," AND SYNAPTICS
+ * EXPRESSLY DISCLAIMS ALL EXPRESS AND IMPLIED WARRANTIES, INCLUDING ANY
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE,
+ * AND ANY WARRANTIES OF NON-INFRINGEMENT OF ANY INTELLECTUAL PROPERTY RIGHTS.
+ * IN NO EVENT SHALL SYNAPTICS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, PUNITIVE, OR CONSEQUENTIAL DAMAGES ARISING OUT OF OR IN CONNECTION
+ * WITH THE USE OF THE INFORMATION CONTAINED IN THIS DOCUMENT, HOWEVER CAUSED
+ * AND BASED ON ANY THEORY OF LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+ * NEGLIGENCE OR OTHER TORTIOUS ACTION, AND EVEN IF SYNAPTICS WAS ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGE. IF A TRIBUNAL OF COMPETENT JURISDICTION DOES
+ * NOT PERMIT THE DISCLAIMER OF DIRECT DAMAGES OR ANY OTHER DAMAGES, SYNAPTICS'
+ * TOTAL CUMULATIVE LIABILITY TO ANY PARTY SHALL NOT EXCEED ONE HUNDRED U.S.
+ * DOLLARS.
  */
+
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/slab.h>
@@ -212,13 +227,7 @@ static void apen_report(void)
 	input_sync(apen->apen_dev);
 
 	dev_dbg(rmi4_data->pdev->dev.parent,
-			"%s: Active pen: "
-			"status = %d, "
-			"invert = %d, "
-			"barrel = %d, "
-			"x = %d, "
-			"y = %d, "
-			"pressure = %d\n",
+			"%s: Active pen: status = %d, invert = %d, barrel = %d, x = %d, y = %d, pressure = %d\n",
 			__func__,
 			apen->apen_data->status_pen,
 			apen->apen_data->status_invert,
@@ -306,7 +315,7 @@ static int apen_reg_init(void)
 	retval = synaptics_rmi4_reg_read(rmi4_data,
 			apen->query_base_addr + 8,
 			query_8.data,
-			size_of_query8);
+			sizeof(query_8.data));
 	if (retval < 0)
 		return retval;
 
@@ -435,6 +444,13 @@ static int synaptics_rmi4_apen_init(struct synaptics_rmi4_data *rmi4_data)
 {
 	int retval;
 
+	if (apen) {
+		dev_dbg(rmi4_data->pdev->dev.parent,
+				"%s: Handle already exists\n",
+				__func__);
+		return 0;
+	}
+
 	apen = kzalloc(sizeof(*apen), GFP_KERNEL);
 	if (!apen) {
 		dev_err(rmi4_data->pdev->dev.parent,
@@ -537,8 +553,6 @@ static void synaptics_rmi4_apen_reset(struct synaptics_rmi4_data *rmi4_data)
 	apen_lift();
 
 	apen_scan_pdt();
-
-	apen_set_params();
 
 	return;
 }
