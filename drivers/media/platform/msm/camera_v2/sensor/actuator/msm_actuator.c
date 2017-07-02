@@ -16,7 +16,13 @@
 #include "msm_sd.h"
 #include "msm_actuator.h"
 #include "msm_cci.h"
-
+//gionee chenqiang add for imx135 ois feature 20140505 begin
+#include "Ois.h" 
+#include "OisDef.h"
+//gionee chenqiang add for imx135 ois feature 20140505 end
+//gionee zhaocuiqin add for CR01357270 20140815 begin
+#include <linux/kthread.h>
+//gionee zhaocuiqin add for CR01357270 20140815 end
 DEFINE_MSM_MUTEX(msm_actuator_mutex);
 
 /*#define MSM_ACUTUATOR_DEBUG*/
@@ -27,6 +33,10 @@ DEFINE_MSM_MUTEX(msm_actuator_mutex);
 #define CDBG(fmt, args...) pr_debug(fmt, ##args)
 #endif
 
+//gionee chenqiang add for imx135 ois feature 20140505 begin
+static struct msm_actuator_ctrl_t *msm_act_ctrl_t = NULL;
+struct gn_sunny_imx135_otp_struct current_imx135_otp;
+//gionee chenqiang add for imx135 ois feature 20140505 end
 
 static int32_t msm_actuator_power_up(struct msm_actuator_ctrl_t *a_ctrl);
 static int32_t msm_actuator_power_down(struct msm_actuator_ctrl_t *a_ctrl);
@@ -112,8 +122,8 @@ static void msm_actuator_parse_i2c_params(struct msm_actuator_ctrl_t *a_ctrl,
 					i2c_byte1 = write_arr[i].reg_addr;
 					i2c_byte2 = (value & 0xFF00) >> 8;
 				}
-			} else {
-				i2c_byte1 = (value & 0xFF00) >> 8;
+			}else if(write_arr[i].reg_addr != 0X0304){  //add by chenqiang 
+                i2c_byte1 = (value & 0xFF00) >> 8;
 				i2c_byte2 = value & 0xFF;
 			}
 		} else {
@@ -552,6 +562,142 @@ static int32_t msm_actuator_set_position(
 	CDBG("%s exit %d\n", __func__, __LINE__);
 	return rc;
 }
+//gionee chenqiang add for imx135 ois feature 20140505 begin
+static int32_t read_otp(struct gn_sunny_imx135_otp_struct *otp_ptr)
+{
+  otp_ptr->lens_id = read_cmos_sensor_byte_data(senosr_info_addr + lens_offset);
+
+  otp_ptr->daxhlo =  ((read_cmos_sensor_byte_data(ois_info_addr+0x00)<<8)&0xff00)  |  (read_cmos_sensor_byte_data(ois_info_addr+0x01)&0xff);
+  otp_ptr->dayhlo =  ((read_cmos_sensor_byte_data(ois_info_addr+0x02)<<8)&0xff00)  |  (read_cmos_sensor_byte_data(ois_info_addr+0x03)&0xff);
+
+  otp_ptr->daxhlb =  ((read_cmos_sensor_byte_data(ois_info_addr+0x04)<<8)&0xff00)  |  (read_cmos_sensor_byte_data(ois_info_addr+0x05)&0xff);
+  otp_ptr->dayhlb =  ((read_cmos_sensor_byte_data(ois_info_addr+0x06)<<8)&0xff00)  |  (read_cmos_sensor_byte_data(ois_info_addr+0x07)&0xff);
+
+  otp_ptr->off0z =  ((read_cmos_sensor_byte_data(ois_info_addr+0x08)<<8)&0xff00)  |  (read_cmos_sensor_byte_data(ois_info_addr+0x09)&0xff);
+  otp_ptr->off1z =  ((read_cmos_sensor_byte_data(ois_info_addr+0x0a)<<8)&0xff00)  |  (read_cmos_sensor_byte_data(ois_info_addr+0x0b)&0xff);
+
+  otp_ptr->sxg_otp =  ((read_cmos_sensor_byte_data(ois_info_addr+0x0c)<<8)&0xff00)  |  (read_cmos_sensor_byte_data(ois_info_addr+0x0d)&0xff);
+  otp_ptr->syg_otp =  ((read_cmos_sensor_byte_data(ois_info_addr+0x0e)<<8)&0xff00)  |  (read_cmos_sensor_byte_data(ois_info_addr+0x0f)&0xff);
+
+  otp_ptr->optical_center_x =  ((read_cmos_sensor_byte_data(ois_info_addr+0x10)<<8)&0xff00)  |  (read_cmos_sensor_byte_data(ois_info_addr+0x11)&0xff);
+  otp_ptr->optical_center_y =  ((read_cmos_sensor_byte_data(ois_info_addr+0x12)<<8)&0xff00)  |  (read_cmos_sensor_byte_data(ois_info_addr+0x13)&0xff);
+
+  otp_ptr->izah =   read_cmos_sensor_byte_data(ois_info_addr+0x14)&0xff;
+  otp_ptr->izal =   read_cmos_sensor_byte_data(ois_info_addr+0x15)&0xff;
+  otp_ptr->izbh =   read_cmos_sensor_byte_data(ois_info_addr+0x16)&0xff;//modify by gionee zhaocuiqin for ois CR01354665  20140812
+  otp_ptr->izbl =   read_cmos_sensor_byte_data(ois_info_addr+0x17)&0xff;
+
+
+
+  otp_ptr->osc_value =   read_cmos_sensor_byte_data(ois_info_addr+0x18)&0xff;
+
+  otp_ptr->gxzoom_otp =  ((read_cmos_sensor_byte_data(ois_info_addr+0x19)<<24)&0xff000000)
+                     | ((read_cmos_sensor_byte_data(ois_info_addr+0x1a)<<16)&0xff0000) 
+                     | ((read_cmos_sensor_byte_data(ois_info_addr+0x1b)<<8)&0xff00) 
+                     |  (read_cmos_sensor_byte_data(ois_info_addr+0x1c)&0xff);
+
+
+  otp_ptr->gyzoom_otp =  ((read_cmos_sensor_byte_data(ois_info_addr+0x1d)<<24)&0xff000000)
+                     | ((read_cmos_sensor_byte_data(ois_info_addr+0x1e)<<16)&0xff0000) 
+                     | ((read_cmos_sensor_byte_data(ois_info_addr+0x1f)<<8)&0xff00) 
+                     |  (read_cmos_sensor_byte_data(ois_info_addr+0x20)&0xff);
+
+    return 0;
+
+}
+
+//gionee zhaocuiqin add for CR01357270 20140815 begin
+int oispower_flag = 0;
+static int ois_reset_thread(void *priv)
+{	 
+     if (oispower_flag == 1) {
+         RegWriteA(WG_PANSTT6,0x44); 
+         RamWriteA( TCODEH,0x0000 ) ;			
+         RtnCen( 0x00);	 
+     } 
+    
+     msleep(300);
+    
+     if (oispower_flag == 1) {
+         RegWriteA(WG_PANSTT6,0x88); 
+     }
+    
+     msleep(200);
+    	 
+     if  (oispower_flag == 1) {
+         RegWriteA(WG_PANSTT6,0x00); 
+         OisEna();
+         SetH1cMod( MOVMODE ) ;
+     }
+
+     return 0;
+}
+//gionee zhaocuiqin add for CR01357270 20140815 end
+static int32_t  gn_msm_sunny_imx135_ois_init(
+	struct msm_actuator_ctrl_t *a_ctrl)
+{
+    struct task_struct *thread = NULL;
+    struct gn_sunny_imx135_otp_struct *otp_ptr=&current_imx135_otp;
+    if(read_otp(&current_imx135_otp) < 0)
+        pr_err("gionee imx135 ois otp read failed" );
+
+	IniSetAf();
+	IniSet();
+
+	RamAccFixMod( ON ) ;	
+	RamWriteA(DAXHLO,otp_ptr->daxhlo);//16-bit write
+	RamWriteA(DAYHLO,otp_ptr->dayhlo);//16-bit write
+	RamWriteA(DAXHLB,otp_ptr->daxhlb);//16-bit write
+	RamWriteA(DAYHLB,otp_ptr->dayhlb);//16-bit write
+	RamWriteA(OFF0Z, otp_ptr->off0z);//16-bit write
+	RamWriteA(OFF1Z, otp_ptr->off1z);//16-bit write
+	RamWriteA(sxg,otp_ptr->sxg_otp);//16-bit write
+	RamWriteA(syg,otp_ptr->syg_otp);//16-bit write
+	RamAccFixMod( OFF ) ;	
+
+    RegWriteA(IZAH,otp_ptr->izah); //8-bit  write
+    RegWriteA(IZAL,otp_ptr->izal); //8-bit  write
+    RegWriteA(IZBH,otp_ptr->izbh); //8-bit  write
+    RegWriteA(IZBL,otp_ptr->izbl); //8-bit  write
+
+	RamWrite32A( gxzoom, otp_ptr->gxzoom_otp ) ;		// 0x1020 Gyro X axis Gain adjusted value
+	RamWrite32A( gyzoom, otp_ptr->gyzoom_otp ) ;		// 0x1120 Gyro Y axis Gain adjusted value
+
+    RegWriteA(OSCSET,otp_ptr->osc_value); //8-bit  write
+    ClrGyr( 0x007F , CLR_FRAM1 );	
+    SetPanTiltMode( ON );
+	   
+    oispower_flag = 1;
+    thread = kthread_run(ois_reset_thread, NULL, "ois thread"); //gionee zhaocuiqin add for CR01357270 20140815
+	if (IS_ERR(thread)) {
+        thread = NULL;
+	    return -1;
+	}
+    return 0;
+}
+//gionee chenqiang add for imx135 ois feature 20140505 end
+
+//gionee zhaocuiqin add for ois mode begin 20140626
+static int32_t gn_msm_set_ois_mode(enum ois_camera_mode data)
+{
+	int32_t rc = 0;
+	switch(data) {
+       case Ois_Prev_ACT_Mode: 
+        printk("gn_msm_set_ois_mode ACTMODE\n");
+	 SetH1cMod( ACTMODE ) ;
+	 break;
+	 case Ois_Cap_S2_Mode: 
+	 printk("gn_msm_set_ois_mode S2MODE\n");
+	 SetH1cMod( S2MODE ) ;
+	 break;
+	 case Ois_Video_Move_Mode:
+	 printk("gn_msm_set_ois_mode MOVMODE\n");
+	 SetH1cMod( MOVMODE ) ;
+	 break;	    	
+	}
+	return rc;
+}
+//gionee zhaocuiqin add for ois mode end 20140626
 
 static int32_t msm_actuator_init(struct msm_actuator_ctrl_t *a_ctrl,
 	struct msm_actuator_set_info_t *set_info) {
@@ -608,6 +754,21 @@ static int32_t msm_actuator_init(struct msm_actuator_ctrl_t *a_ctrl,
 
 	a_ctrl->i2c_data_type = set_info->actuator_params.i2c_data_type;
 	a_ctrl->i2c_client.addr_type = set_info->actuator_params.i2c_addr_type;
+//gionee chenqiang add for imx135 ois feature 20140505 begin
+	if (a_ctrl->act_device_type == MSM_CAMERA_PLATFORM_DEVICE) {
+		cci_client = a_ctrl->i2c_otp_client.cci_client;
+		cci_client->sid =  0xA0 >> 1;
+		cci_client->retries = 3;
+		cci_client->id_map = 0;
+		cci_client->cci_i2c_master = a_ctrl->cci_master;
+	} else {
+		a_ctrl->i2c_otp_client.client->addr =
+			set_info->actuator_params.i2c_addr;
+	}
+	a_ctrl->i2c_data_type = set_info->actuator_params.i2c_data_type;
+
+	a_ctrl->i2c_otp_client.addr_type = MSM_CAMERA_I2C_BYTE_ADDR;
+//gionee chenqiang add for imx135 ois feature 20140505 end
 	if (set_info->actuator_params.reg_tbl_size <=
 		MAX_ACTUATOR_REG_TBL_SIZE) {
 		a_ctrl->reg_tbl_size = set_info->actuator_params.reg_tbl_size;
@@ -676,14 +837,81 @@ static int32_t msm_actuator_init(struct msm_actuator_ctrl_t *a_ctrl,
 	if (a_ctrl->func_tbl->actuator_init_step_table)
 		rc = a_ctrl->func_tbl->
 			actuator_init_step_table(a_ctrl, set_info);
-
+//gionee chenqiang add for imx135 ois feature 20140505 begin
+        if (a_ctrl->func_tbl->gn_sunny_imx135_ois_init)
+		{
+          msm_act_ctrl_t = a_ctrl;     
+          rc = a_ctrl->func_tbl->gn_sunny_imx135_ois_init(a_ctrl);  
+          if (rc < 0)
+			{
+			pr_err("gn_sunny_imx135_ois_init failed %d\n", rc);
+			return -EFAULT;
+			}                
+        } 
+//gionee chenqiang add for imx135 ois feature 20140505 end	
 	a_ctrl->curr_step_pos = 0;
 	a_ctrl->curr_region_index = 0;
 	CDBG("Exit\n");
 
 	return rc;
 }
+//gionee chenqiang add for imx135 ois feature 20140505 begin
+void RegWriteA(uint32_t add , uint16_t data)
+{
+   if(msm_act_ctrl_t->i2c_client.i2c_func_tbl->i2c_write(&msm_act_ctrl_t->i2c_client,add,data, MSM_CAMERA_I2C_BYTE_DATA) < 0)
+     pr_err("ois write_8bit err\n");
+}
+void RamWriteA(uint32_t add , uint16_t data)
+{
+   if( msm_act_ctrl_t->i2c_client.i2c_func_tbl->i2c_write(&msm_act_ctrl_t->i2c_client,add,data, MSM_CAMERA_I2C_WORD_DATA) < 0)
+     pr_err("ois write_16bit err\n");
+}
+void RamWrite32A(uint32_t add , uint32_t data)
+{
+     uint8_t data_temp[4]={0};
+     data_temp[0]=(data>>24)&0xff;
+     data_temp[1]=(data>>16)&0xff;  
+     data_temp[2]=(data>>8)&0xff; 
+     data_temp[3]=data&0xff; 
+     if(msm_act_ctrl_t->i2c_client.i2c_func_tbl->i2c_write_seq(&msm_act_ctrl_t->i2c_client,add,data_temp, 4) < 0)
+     pr_err("ois write_32bit err\n");
+}
+void RegReadA(uint32_t add , unsigned char   *data)
+{
+    uint16_t data_temp[1]={0};
+    if(msm_act_ctrl_t->i2c_client.i2c_func_tbl->i2c_read(&msm_act_ctrl_t->i2c_client,add, data_temp, MSM_CAMERA_I2C_BYTE_DATA) < 0)
+     pr_err("ois read_8bit err\n"); 
+    *data= (data_temp[0])&0xff;
+}
+void RamReadA(uint32_t add , uint16_t *data)
+{
 
+     if(msm_act_ctrl_t->i2c_client.i2c_func_tbl->i2c_read(&msm_act_ctrl_t->i2c_client,add,data, MSM_CAMERA_I2C_WORD_DATA) < 0)
+     pr_err("ois read_16bit err\n");
+}
+void RamRead32A(uint32_t add , unsigned long *data)
+{
+   uint8_t data_temp[4]={0};
+   if(msm_act_ctrl_t->i2c_client.i2c_func_tbl->i2c_read_seq(&msm_act_ctrl_t->i2c_client,add,data_temp, 4) < 0)
+   pr_err("ois read_32bit err\n");
+   *data=(data_temp[0]<<24)|(data_temp[1]<<16)|(data_temp[2]<<8)|(data_temp[3]);
+}
+uint8_t read_cmos_sensor_byte_data(uint16_t addr)
+{
+   int32_t rc=0;
+   uint16_t data_temp[1]={0};
+   rc = msm_act_ctrl_t->i2c_otp_client.i2c_func_tbl->i2c_read(&msm_act_ctrl_t->i2c_otp_client,addr, data_temp, MSM_CAMERA_I2C_BYTE_DATA);
+   if(rc<0)
+   { 
+       pr_err("ois read_16bit err\n");
+       return -1;
+   }
+   else
+   {
+       return (data_temp[0]&0xff);
+   }
+}
+//gionee chenqiang add for imx135 ois feature 20140505 end	
 static int32_t msm_actuator_config(struct msm_actuator_ctrl_t *a_ctrl,
 	void __user *argp)
 {
@@ -726,6 +954,14 @@ static int32_t msm_actuator_config(struct msm_actuator_ctrl_t *a_ctrl,
 			pr_err("actuator_set_position failed %d\n", rc);
 		break;
 
+//gionee zhaocuiqin add for ois mode begin 20140626		
+	case CFG_SET_OIS_MODE:
+		rc = a_ctrl->func_tbl->gn_sunny_set_ois_mode(cdata->cfg.ois_mode);
+		if (rc < 0)
+			pr_err("gn_sunny_set_ois_mode failed %d\n", rc);
+		break;
+//gionee zhaocuiqin add for ois mode end 20140626	
+
 	case CFG_ACTUATOR_POWERUP:
 		rc = msm_actuator_power_up(a_ctrl);
 		if (rc < 0)
@@ -763,6 +999,9 @@ static struct msm_camera_i2c_fn_t msm_sensor_cci_func_tbl = {
 	.i2c_read = msm_camera_cci_i2c_read,
 	.i2c_read_seq = msm_camera_cci_i2c_read_seq,
 	.i2c_write = msm_camera_cci_i2c_write,
+	//gionee chenqiang add for imx135 ois feature 20140505 begin
+	.i2c_write_seq = msm_camera_cci_i2c_write_seq,
+	//gionee chenqiang add for imx135 ois feature 20140505 end
 	.i2c_write_table = msm_camera_cci_i2c_write_table,
 	.i2c_write_seq_table = msm_camera_cci_i2c_write_seq_table,
 	.i2c_write_table_w_microdelay =
@@ -1043,6 +1282,19 @@ static int32_t msm_actuator_platform_probe(struct platform_device *pdev)
 	cci_client = msm_actuator_t->i2c_client.cci_client;
 	cci_client->cci_subdev = msm_cci_get_subdev();
 	cci_client->cci_i2c_master = MASTER_MAX;
+//gionee chenqiang add for imx135 ois feature 20140505 begin
+	msm_actuator_t->i2c_otp_client.i2c_func_tbl = &msm_sensor_cci_func_tbl;
+	msm_actuator_t->i2c_otp_client.cci_client = kzalloc(sizeof(
+		struct msm_camera_cci_client), GFP_KERNEL);
+	if (!msm_actuator_t->i2c_otp_client.cci_client) {
+		pr_err("failed no memory\n");
+		return -ENOMEM;
+	}
+
+	cci_client = msm_actuator_t->i2c_otp_client.cci_client;
+	cci_client->cci_subdev = msm_cci_get_subdev();
+	cci_client->cci_i2c_master = MASTER_MAX;
+//gionee chenqiang add for imx135 ois feature 20140505 end
 	v4l2_subdev_init(&msm_actuator_t->msm_sd.sd,
 		msm_actuator_t->act_v4l2_subdev_ops);
 	v4l2_set_subdevdata(&msm_actuator_t->msm_sd.sd, msm_actuator_t);
@@ -1115,6 +1367,12 @@ static struct msm_actuator msm_vcm_actuator_table = {
 		.actuator_init_focus = msm_actuator_init_focus,
 		.actuator_parse_i2c_params = msm_actuator_parse_i2c_params,
 		.actuator_set_position = msm_actuator_set_position,
+        //gionee zhaocuiqin add for ois mode begin 20140626
+		 .gn_sunny_set_ois_mode =  gn_msm_set_ois_mode,
+		//gionee zhaocuiqin add for ois mode end 20140626
+		//gionee chenqiang add for imx135 ois feature 20140505 begin
+        .gn_sunny_imx135_ois_init = gn_msm_sunny_imx135_ois_init,
+		//gionee chenqiang add for imx135 ois feature 20140505 end
 	},
 };
 

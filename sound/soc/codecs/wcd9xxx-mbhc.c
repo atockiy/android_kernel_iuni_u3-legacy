@@ -100,7 +100,12 @@
  * Invalid voltage range for the detection
  * of plug type with current source
  */
-#define WCD9XXX_CS_MEAS_INVALD_RANGE_LOW_MV 160
+//Gionee huangzhuolin 20141202 modify for CR01429600 begin
+#ifdef CONFIG_GN_Q_BSP_AUDIO_HEADSET_SUPPORT	
+//#define WCD9XXX_CS_MEAS_INVALD_RANGE_LOW_MV 160
+#define WCD9XXX_CS_MEAS_INVALD_RANGE_LOW_MV 240
+#endif
+//Gionee huangzhuolin 20141202 modify for CR01429600 end
 #define WCD9XXX_CS_MEAS_INVALD_RANGE_HIGH_MV 265
 
 /*
@@ -4997,6 +5002,46 @@ int wcd9xxx_mbhc_init(struct wcd9xxx_mbhc *mbhc, struct wcd9xxx_resmgr *resmgr,
 				__func__);
 			return ret;
 		}
+
+//Gionee huangzhuolin 20140626 add for U2 Multi-function headset CR01296447 begin
+#ifdef CONFIG_GN_Q_BSP_AUDIO_MBHC_CALIBRATION
+		ret = snd_jack_set_key(mbhc->button_jack.jack,
+				       SND_JACK_BTN_1,
+				       KEY_VOLUMEUP);
+		if (ret) {
+			pr_err("%s: Failed to set code for btn-1\n",
+				__func__);
+			return ret;
+		}
+
+		ret = snd_jack_set_key(mbhc->button_jack.jack,
+				       SND_JACK_BTN_2,
+				       KEY_VOLUMEDOWN);
+		if (ret) {
+			pr_err("%s: Failed to set code for btn-2\n",
+				__func__);
+			return ret;
+		}
+
+		ret = snd_jack_set_key(mbhc->button_jack.jack,
+				       SND_JACK_BTN_3,
+				       KEY_NEXTSONG);
+		if (ret) {
+			pr_err("%s: Failed to set code for btn-3\n",
+				__func__);
+			return ret;
+		}
+
+		ret = snd_jack_set_key(mbhc->button_jack.jack,
+				       SND_JACK_BTN_4,
+				       KEY_PREVIOUSSONG);
+		if (ret) {
+			pr_err("%s: Failed to set code for btn-4\n",
+				__func__);
+			return ret;
+		}
+#endif
+//Gionee huangzhuolin 20140626 add for U2 Multi-function headset CR01296447 end
 
 		INIT_DELAYED_WORK(&mbhc->mbhc_firmware_dwork,
 				  wcd9xxx_mbhc_fw_read);

@@ -577,6 +577,12 @@ config HAPTIC_ISA1200
 	help
 	  The ISA1200 is a high performance enhanced haptic driver.
 
+config KEY_HALL
+	tristate "Hall key support"
+	default n
+	help
+	  The Hall key is a high performance enhanced driver.
+
 config PMIC8058_PWM
 	tristate "Qualcomm PM8058 PWM support"
 	depends on PMIC8058
@@ -670,6 +676,12 @@ config UID_CPUTIME
 	depends on PROFILING
 	help
 	  Per UID based cpu time statistics exported to /proc/uid_cputime
+
+config GN_DEVICE_TYPE_CHECK
+    tristate "Gionee Device Check"
+    default n
+
+
 
 source "drivers/misc/c2port/Kconfig"
 source "drivers/misc/eeprom/Kconfig"

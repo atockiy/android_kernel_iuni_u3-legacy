@@ -168,6 +168,11 @@ struct wcd9xxx_pdata {
 	int irq_base;
 	int num_irqs;
 	int reset_gpio;
+//add by zhaocq for audio PA YDA145_EN begin CR00874233
+#ifdef CONFIG_GN_Q_BSP_AUDIO_HEADSET_SUPPORT	
+    int pa_gpio;
+#endif
+//add by zhaocq for audio PA YDA145_EN end CR00874233
 	struct wcd9xxx_amic amic_settings;
 	struct slim_device slimbus_slave_device;
 	struct wcd9xxx_micbias_setting micbias;

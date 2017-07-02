@@ -2397,16 +2397,18 @@ static ssize_t blink_store(struct device *dev,
 	return count;
 }
 
-static DEVICE_ATTR(led_mode, 0664, NULL, led_mode_store);
-static DEVICE_ATTR(strobe, 0664, NULL, led_strobe_type_store);
-static DEVICE_ATTR(pwm_us, 0664, NULL, pwm_us_store);
-static DEVICE_ATTR(pause_lo, 0664, NULL, pause_lo_store);
-static DEVICE_ATTR(pause_hi, 0664, NULL, pause_hi_store);
-static DEVICE_ATTR(start_idx, 0664, NULL, start_idx_store);
-static DEVICE_ATTR(ramp_step_ms, 0664, NULL, ramp_step_ms_store);
-static DEVICE_ATTR(lut_flags, 0664, NULL, lut_flags_store);
-static DEVICE_ATTR(duty_pcts, 0664, NULL, duty_pcts_store);
-static DEVICE_ATTR(blink, 0664, NULL, blink_store);
+//Gionee liujiang 2013-10-15 modify for CR00921379 start
+static DEVICE_ATTR(led_mode, 0666, NULL, led_mode_store);
+static DEVICE_ATTR(strobe, 0666, NULL, led_strobe_type_store);
+static DEVICE_ATTR(pwm_us, 0666, NULL, pwm_us_store);
+static DEVICE_ATTR(pause_lo, 0666, NULL, pause_lo_store);
+static DEVICE_ATTR(pause_hi, 0666, NULL, pause_hi_store);
+static DEVICE_ATTR(start_idx, 0666, NULL, start_idx_store);
+static DEVICE_ATTR(ramp_step_ms, 0666, NULL, ramp_step_ms_store);
+static DEVICE_ATTR(lut_flags, 0666, NULL, lut_flags_store);
+static DEVICE_ATTR(duty_pcts, 0666, NULL, duty_pcts_store);
+static DEVICE_ATTR(blink, 0666, NULL, blink_store);
+//Gionee liujiang 2013-10-15 modify for CR00921379 end
 
 static struct attribute *led_attrs[] = {
 	&dev_attr_led_mode.attr,

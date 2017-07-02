@@ -494,6 +494,7 @@ enum msm_actuator_cfg_type_t {
 	CFG_SET_DEFAULT_FOCUS,
 	CFG_MOVE_FOCUS,
 	CFG_SET_POSITION,
+	CFG_SET_OIS_MODE,//gionee zhaocuiqin add for ois mode 20140626
 	CFG_ACTUATOR_POWERDOWN,
 	CFG_ACTUATOR_POWERUP,
 };
@@ -602,6 +603,13 @@ enum af_camera_name {
 	ACTUATOR_WEB_CAM_2,
 };
 
+//gionee zhaocuiqin add for ois mode begin 20140626
+enum ois_camera_mode {
+	Ois_Prev_ACT_Mode,
+	Ois_Cap_S2_Mode,
+    Ois_Video_Move_Mode,
+};
+//gionee zhaocuiqin add for ois mode end 20140626
 
 struct msm_actuator_set_position_t {
 	uint16_t number_of_steps;
@@ -618,6 +626,7 @@ struct msm_actuator_cfg_data {
 		struct msm_actuator_get_info_t get_info;
 		struct msm_actuator_set_position_t setpos;
 		enum af_camera_name cam_name;
+		enum ois_camera_mode ois_mode;//gionee zhaocuiqin add for ois mode 20140626
 	} cfg;
 };
 
