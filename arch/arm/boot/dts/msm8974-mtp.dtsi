@@ -12,7 +12,12 @@
 
 /include/ "msm8974-camera-sensor-mtp.dtsi"
 /include/ "msm8974-leds.dtsi"
-
+//GIONEE liujiang 2013-09-13 add for gpio-18 out 19.2M clk start
+/include/ "msm8974-clock.dtsi"
+//GIONEE liujiang 2013-09-13 add for gpio-18 out 19.2M clk start
+//GIONEE liujiang 2014-05-19 add for hall-key start
+/include/ "msm8974-regulator.dtsi"
+//GIONEE liujiang 2014-05-19 add for hall-key start
 / {
 	aliases {
 		serial0 = &blsp1_uart1;
@@ -23,11 +28,16 @@
 	serial@f991e000 {
 		status = "ok";
 	};
-
+//Gionee xiangzhong modify for 2k cmd panel begin
 	qcom,mdss_dsi@fd922800 {
-		qcom,dsi-pref-prim-pan = <&dsi_tosh_720_vid>;
+		qcom,dsi-pref-prim-pan = <&dsi_dual_sharp_r63419_cmd_0>;
+		status = "ok";
 	};
-
+	qcom,mdss_dsi@fd922e00 {
+		qcom,dsi-pref-prim-pan = <&dsi_dual_sharp_r63419_cmd_1>;
+		status = "ok";
+	};
+//Gionee xiangzhong modify for 2k cmd panel end
 	qcom,mdss_mdp@fd900000 {
 		qcom,mdss-pref-prim-intf = "dsi";
 		batfet-supply = <&pm8941_chg_batif>;
@@ -37,22 +47,38 @@
 		status = "disabled";
 	};
 
+/*Gionee luliya modify for s3508 begin */
 	i2c@f9924000 {
 		synaptics@20 {
-			compatible = "synaptics,rmi4";
+			compatible = "synaptics,dsx";
 			reg = <0x20>;
 			interrupt-parent = <&msmgpio>;
-			interrupts = <61 0x2008>;
-			vdd-supply = <&pm8941_l18>;
-			vcc_i2c-supply = <&pm8941_lvs1>;
-			synaptics,reset-gpio = <&msmgpio 60 0x00>;
-			synaptics,irq-gpio = <&msmgpio 61 0x2008>;
-			synaptics,display-coords = <0 0 1079 1919>;
-			synaptics,i2c-pull-up;
-			synaptics,power-down;
-			synaptics,disable-gpios;
-			synaptics,do-lockdown;
+			interrupts = <61 0x2>;
+	        	vdd-supply = <&pm8941_l22>;
+		        vcc_i2c-supply = <&pm8941_lvs1>;
+
+		        synaptics,reset-gpio = <&msmgpio 60 0x00>;
+			synaptics,reset-delay-ms = <100>;
+			synaptics,reset-on-state = <1>;
+			synaptics,reset-active-ms = <20>;
+			synaptics,irq-gpio = <&msmgpio 61 0x00>;
+			synaptics,irq-flags = <0x2>;
+			synaptics,power-gpio = <&msmgpio 85 0x00>;
+			synaptics,cap-button-map = <139 172 158>; 
+			synaptics,power-on-state = <1>;
+			synaptics,power-delay-ms = <160>;
+			synaptics,max-y-for-2d = <2560>; /* remove if no virtual buttons */
+			synaptics,fw-image-name1 = "PR1798622-s3508r_OW_000000D8.img";
+			synaptics,fw-image-name2 = "PR1798622-s3508r_OW_000000D8.img";
+			synaptics,fw-image-name3 = "PR1782558-s3508r_TB_000000BF.img";
+			synaptics,fw-image-name4 = "PR1782558-s3508r_TW_000000BF.img";
+			synaptics,fw-image-name5 = "PR1798622-s3508r_OB_000000D8.img";
+			synaptics,fw-image-name6 = "PR1798622-s3508r_OW_000000D8.img";
+			synaptics,fw-image-name7 = "PR1798622-s3508r_OG_000000D8.img";
+			synaptics,fw-image-name8 = "PR1782558-s3508r_TG_000000BF.img";
+			synaptics,vir-button-codes = <102 100 900 100 60 158 300 900 100 60>;
 		};
+/*Gionee luliya modify for s3508 end */
 
 		atmel_mxt_ts@4a {
 			compatible = "atmel,mxt-ts";
@@ -143,6 +169,24 @@
 		qcom,key-codes = <158 139 102 217>;
 	};
 
+//GIONEE liujiang 2014-05-19 add for hall-key start
+	hall-keys {
+		interrupt-parent = <&msmgpio>;
+		interrupts = <54 0x2>;
+		vdd-supply = <&pm8941_s3>;
+		compatible = "liujiang,hall_key";
+		label = "key";
+		hall,irq-gpio = <&msmgpio 54 0x00>;
+		hall,irq-flags = <0x2>;
+		hall,regulator {
+			regulator-name = "vdd";
+			regulator-min-microvolt = <1800000>;
+			regulator-max-microvolt = <1800000>;
+			regulator-max-microamp = <9360>;
+		}; 
+	};
+//GIONEE liujiang 2014-05-19 add for hall-key end
+
 	i2c@f9967000 {
 		isa1200@48 {
 			status = "okay";
@@ -153,6 +197,10 @@
 			imagis,chip-en;
 			imagis,need-pwm-clk;
 			imagis,ext-clk-en;
+//GIONEE liujiang 2013-09-13 add for gpio-18 out 19.2M clk start
+			imagis,isa1200-mclk-gpios = <&pm8941_gpios 18 0>;
+			isa1200-mclk-clk = <&pm8941_clkdiv3>;
+//GIONEE liujiang 2013-09-13 add for gpio-18 out 19.2M clk end
 			imagis,hap-en-gpio = <&msmgpio 86 0x00>;
 			imagis,max-timeout = <15000>;
 			imagis,pwm-div = <256>;
@@ -164,6 +212,24 @@
 				regulator-max-microamp = <9360>;
 			};
 		};
+		/*Gionee xiangzhong 2013-12-16  add for lm3630 begin*/
+                lm3630@36 {
+                	status = "ok";
+                        reg = <0x36>;
+                        compatible = "ti,lm3630";
+                        label = "lm3630";
+                        ti,enable_gpio = <&msmgpio 58 0x00>;         
+                 };
+  		/*Gionee xiangzhong 2013-12-16  add for lm3630 end*/
+		//xiangzhong add for tps65132 begin
+                tps65132@3e {
+                	status = "ok";
+                        reg = <0x3e>;
+                        compatible = "ti,tps65132";
+                        label = "tps65132";
+                        ti,enable_gpio = <&msmgpio 58 0x00>;
+                 };
+  		//xiangzhong add for tps65132 end
 	};
 
 	gpio_keys {
@@ -220,7 +286,9 @@
 
 &pm8941_lsid1 {
 	qcom,leds@d800 {
-		status = "okay";
+        //gionee yezg 2014-4-28 add for reduce bottome current,CR01226053
+		status = "disabled";
+/*		status = "okay";
 		qcom,wled_0 {
 			label = "wled";
 			linux,name = "wled:backlight";
@@ -237,6 +305,7 @@
 			qcom,num-strings = <3>;
 			qcom,id = <0>;
 		};
+*/
 	};
 
 	qcom,leds@d900 {
@@ -383,6 +452,10 @@
 
 		/include/ "batterydata-palladium.dtsi"
 		/include/ "batterydata-mtp-3000mah.dtsi"
+//Gionee liujiang 2014-05-21 add for LG batterydata start
+		/include/ "batterydata-XWD-LG-2900mah.dtsi"
+		/include/ "batterydata-DS-LG-2900mah.dtsi"
+//Gionee liujiang 2014-05-21 add for LG batterydata end
 	};
 };
 
@@ -398,7 +471,9 @@
 
 &pm8941_chg {
 	status = "ok";
-	qcom,charging-disabled;
+//Gionee wudp 2013-08-07 modify for enable pm8941 chg begin
+	qcom,charging-enabled;//qcom,charging-disabled;
+//Gionee wudp 2013-08-07 modify for enable pm8941 chg end
 	qcom,battery-data = <&mtp_batterydata>;
 
 	qcom,chgr@1000 {
@@ -468,8 +543,14 @@
 	};
 
 	gpio@c500 { /* GPIO 6 */
-		qcom,mode = <0>;        /* QPNP_PIN_MODE_DIG_IN */
-		qcom,pull = <0>;        /* QPNP_PIN_PULL_UP_30  */
+//Gionee zhaocq CR00874233 add for speaker pa begin
+		qcom,mode = <1>;		/* QPNP_PIN_MODE_DIG_OUT */
+		qcom,output-type = <0>;		/* QPNP_PIN_OUT_BUF_CMOS */
+		qcom,pull = <5>;		/* QPNP_PIN_PULL_NO */
+		qcom,vin-sel = <2>;		/* QPNP_PIN_VIN2 */
+		qcom,out-strength = <1>;	/* QPNP_PIN_OUT_STRENGTH_LOW */
+		qcom,src-sel = <0>;		/* QPNP_PIN_SEL_FUNC_CONSTANT */
+//Gionee zhaocq CR00874233 add for speaker pa end
 		qcom,master-en = <1>;
 	};
 
@@ -551,6 +632,15 @@
 	};
 
 	gpio@d100 { /* GPIO 18 */
+//GIONEE liujiang 2013-09-13 add for gpio-18 out 19.2M clk start
+		qcom,mode = <1>; 
+		qcom,output-type = <0>; 
+		qcom,pull = <5>; 
+		qcom,vin-sel = <2>; 
+		qcom,out-strength = <3>; 
+		qcom,src-sel = <2>; 
+		qcom,master-en = <1>;
+//GIONEE liujiang 2013-09-13 add for gpio-18 out 19.2M clk end	
 	};
 
 	gpio@d200 { /* GPIO 19 */
@@ -704,6 +794,7 @@
 	};
 };
 
+//Gionee zhaocq 2013-08-07 external with capless mode begin 
 &slim_msm {
 	taiko_codec {
 		qcom,cdc-micbias1-ext-cap;
@@ -712,6 +803,7 @@
 		qcom,cdc-micbias4-ext-cap;
 	};
 };
+//Gionee zhaocq 2013-08-07 external with capless mode end 
 
 &spi_epm {
 	epm-adc@0 {
@@ -743,3 +835,33 @@
 &dsi_jdi_1080_vid {
        qcom,cont-splash-enabled;
 };
+
+/*Gionee xiangzhong 2014-04-15 add for sharp wqhd begin*/
+&dsi_dual_sharp_r63419_cmd_0 {
+       qcom,cont-splash-enabled;
+};
+&dsi_dual_sharp_r63419_cmd_1 {
+       qcom,cont-splash-enabled;
+};
+&dsi_dual_sharp_r63419_video_0 {
+       qcom,cont-splash-enabled;
+};
+&dsi_dual_sharp_r63419_video_1 {
+       qcom,cont-splash-enabled;
+};
+/*Gionee xiangzhong 2014-04-15 add for sharp wqhd end*/
+
+/*Gionee xiangzhong 2014-05-30 add for truly wqhd begin*/
+&dsi_dual_truly_r63419_cmd_0 {
+       qcom,cont-splash-enabled;
+};
+&dsi_dual_truly_r63419_cmd_1 {
+       qcom,cont-splash-enabled;
+};
+&dsi_dual_truly_r63419_video_0 {
+       qcom,cont-splash-enabled;
+};
+&dsi_dual_truly_r63419_video_1 {
+       qcom,cont-splash-enabled;
+};
+/*Gionee xiangzhong 2014-05-30 add for truly wqhd end*/

@@ -19,5 +19,8 @@
 	};
 
 	pm8941_clkdiv3: clkdiv@5d00 {
+//GIONEE liujiang 2013-09-13 add for gpio-18 out 19.2M clk start
+		qcom,cxo-div = <1>; 
+//GIONEE liujiang 2013-09-13 add for gpio-18 out 19.2M clk start		
 	};
 };
