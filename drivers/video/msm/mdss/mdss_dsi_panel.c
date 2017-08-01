@@ -23,6 +23,7 @@
 #include <linux/err.h>
 
 #include "mdss_dsi.h"
+#include "mdss_livedisplay.h"
 /*Gionee xiangzhong 2014-02-20 add for device type check begin*/
 #if defined(CONFIG_GN_DEVICE_TYPE_CHECK)
 #include <linux/gn_device_check.h>
@@ -139,7 +140,7 @@ u32 mdss_dsi_panel_cmd_read(struct mdss_dsi_ctrl_pdata *ctrl, char cmd0,
 	return 0;
 }
 
-static void mdss_dsi_panel_cmds_send(struct mdss_dsi_ctrl_pdata *ctrl,
+void mdss_dsi_panel_cmds_send(struct mdss_dsi_ctrl_pdata *ctrl,
 			struct dsi_panel_cmds *pcmds)
 {
 	struct dcs_cmd_req cmdreq;
@@ -249,21 +250,6 @@ disp_en_gpio_err:
 	return rc;
 }
 
-/*lcd vendor check*/
-void lcd_vendor_check(void )
-{
-	if(strstr(saved_command_line, "truly") != NULL)
-		{
-	               lcd_vendor = 1;
-	        }else if(strstr(saved_command_line, "sharp") != NULL)
-		{
-         	       lcd_vendor = 2;
-		}
-		else{
-		       printk("lcd vendor detect failed\n");
-		}
-}
-
 int mdss_dsi_panel_reset(struct mdss_panel_data *pdata, int enable)
 {
 	struct mdss_dsi_ctrl_pdata *ctrl_pdata = NULL;
@@ -279,7 +265,7 @@ int mdss_dsi_panel_reset(struct mdss_panel_data *pdata, int enable)
 				panel_data);
 
 	if (!gpio_is_valid(ctrl_pdata->disp_en_gpio)) {
-		pr_debug("%s:%d, reset line not configured\n",
+		pr_debug("%s:%d, display enable line not configured\n",
 			   __func__, __LINE__);
 	}
 
@@ -294,7 +280,6 @@ int mdss_dsi_panel_reset(struct mdss_panel_data *pdata, int enable)
 	if (!gpio_is_valid(ctrl_pdata->rst_gpio)) {
 		pr_debug("%s:%d, reset line not configured\n",
 			   __func__, __LINE__);
-		return rc;
 	}
 
 	pr_debug("%s: enable = %d\n", __func__, enable);
@@ -367,7 +352,7 @@ int mdss_dsi_panel_reset(struct mdss_panel_data *pdata, int enable)
 		msleep(20);
 #endif
 /*Gionee xiangzhong 2013-12-16 add for reset timing begin*/
-
+		}
 		if (gpio_is_valid(ctrl_pdata->mode_gpio)) {
 			if (pinfo->mode_gpio_state == MODE_GPIO_HIGH)
 				gpio_set_value((ctrl_pdata->mode_gpio), 1);
@@ -589,6 +574,8 @@ static int mdss_dsi_panel_on(struct mdss_panel_data *pdata)
 	if (ctrl->on_cmds.cmd_cnt)
 		mdss_dsi_panel_cmds_send(ctrl, &ctrl->on_cmds);
 
+	mdss_livedisplay_update(ctrl, MODE_UPDATE_ALL);
+
 	pr_debug("%s:-\n", __func__);
 	return 0;
 }
@@ -661,7 +648,7 @@ static void mdss_dsi_parse_trigger(struct device_node *np, char *trigger,
 }
 
 
-static int mdss_dsi_parse_dcs_cmds(struct device_node *np,
+int mdss_dsi_parse_dcs_cmds(struct device_node *np,
 		struct dsi_panel_cmds *pcmds, char *cmd_key, char *link_key)
 {
 	const char *data;
@@ -1416,6 +1403,8 @@ static int mdss_panel_parse_dt(struct device_node *np,
 	}
 
 	mdss_dsi_parse_dfps_config(np, ctrl_pdata);
+
+	mdss_livedisplay_parse_dt(np, pinfo);
 
 	return 0;
 

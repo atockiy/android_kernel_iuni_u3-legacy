@@ -56,6 +56,8 @@
 #include "mdss_fb.h"
 #include "mdss_mdp_splash_logo.h"
 
+#include "mdss_livedisplay.h"
+
 #ifdef CONFIG_FB_MSM_TRIPLE_BUFFER
 #define MDSS_FB_NUM 3
 #else
@@ -541,11 +543,19 @@ static struct attribute_group mdss_fb_attr_group = {
 
 static int mdss_fb_create_sysfs(struct msm_fb_data_type *mfd)
 {
-	int rc;
+	int rc = 0;
+
+	if (mfd == NULL)
+		goto sysfs_err;
 
 	rc = sysfs_create_group(&mfd->fbi->dev->kobj, &mdss_fb_attr_group);
 	if (rc)
-		pr_err("sysfs group creation failed, rc=%d\n", rc);
+		goto sysfs_err;
+
+	return mdss_livedisplay_create_sysfs(mfd);
+
+sysfs_err:
+	pr_err("%s: sysfs group creation failed, rc=%d", __func__, rc);
 	return rc;
 }
 
@@ -601,7 +611,7 @@ static int mdss_fb_probe(struct platform_device *pdev)
 	mfd->bl_level = 0;
 	mfd->bl_level_prev_scaled = 0;
 	mfd->bl_scale = 1024;
-	mfd->bl_min_lvl = 30;
+	mfd->bl_min_lvl = 0;
 	mfd->ad_bl_level = 0;
 	mfd->fb_imgType = MDP_RGBA_8888;
 
