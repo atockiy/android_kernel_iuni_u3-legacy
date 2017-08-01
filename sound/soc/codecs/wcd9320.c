@@ -453,6 +453,9 @@ struct taiko_priv {
 	int (*machine_codec_event_cb)(struct snd_soc_codec *codec,
 			enum wcd9xxx_codec_event);
 
+	struct regulator *hpmic_reg;
+	atomic_t hpmic_ref;
+
 	/*
 	 * list used to save/restore registers at start and
 	 * end of impedance measurement
@@ -461,6 +464,9 @@ struct taiko_priv {
 	struct pm_qos_request pm_qos_req;
 	/* cal info for codec */
 	struct fw_info *fw_data;
+
+	/* UHQA (class AB) mode */
+	u8 uhqa_mode;
 };
 
 static const u32 comp_shift[] = {
@@ -542,6 +548,87 @@ static unsigned short tx_digital_gain_reg[] = {
 	TAIKO_A_CDC_TX9_VOL_CTL_GAIN,
 	TAIKO_A_CDC_TX10_VOL_CTL_GAIN,
 };
+
+static int taiko_get_sample_rate(struct snd_soc_codec *codec, int path)
+{
+	return snd_soc_read(codec,
+		(TAIKO_A_CDC_RX1_B5_CTL + 8 * (path - 1)));
+}
+
+static int taiko_compare_bit_format(struct snd_soc_codec *codec,
+			       int bit_format)
+{
+	int i = 0;
+	int ret = 0;
+	struct taiko_priv *taiko_p = snd_soc_codec_get_drvdata(codec);
+
+	for (i = 0; i < NUM_CODEC_DAIS; i++) {
+		if (taiko_p->dai[i].bit_width == bit_format) {
+			ret = 1;
+			break;
+		}
+	}
+	return ret;
+}
+
+static int taiko_update_uhqa_mode(struct snd_soc_codec *codec, int path)
+{
+	int ret = 0;
+	struct taiko_priv *taiko_p = snd_soc_codec_get_drvdata(codec);
+
+	/* Enable UHQA path for fs >= 96KHz & bit=24 bit */
+	if (high_perf_mode ||
+		((taiko_get_sample_rate(codec, path) & 0xE0) >= 0xA0) ||
+		(taiko_compare_bit_format(codec, 24))) {
+		taiko_p->uhqa_mode = 1;
+	} else {
+		taiko_p->uhqa_mode = 0;
+	}
+	dev_info(codec->dev, "%s: uhqa_mode=%d", __func__, taiko_p->uhqa_mode);
+	return ret;
+}
+
+/**
+ * This regulator is needed to control the headset pin swap.
+ * The associated GPIO should be pulled up to set US mode
+ * or low for Euro/China.
+ */
+static int taiko_enable_hpmic_switch(struct snd_soc_codec *codec, bool enable)
+{
+	int ret = 0;
+	struct taiko_priv *taiko = snd_soc_codec_get_drvdata(codec);
+
+	if (!taiko->hpmic_reg)
+		return 0;
+
+	pr_debug("%s() enable: %d, ref count: %d",
+			__func__, enable, atomic_read(&taiko->hpmic_ref));
+
+	if (enable) {
+		if (atomic_inc_return(&taiko->hpmic_ref) == 1) {
+			ret = regulator_enable(taiko->hpmic_reg);
+			if (ret) {
+				pr_err("%s: Failed to enable hpmic switch %d\n",
+						__func__, ret);
+			}
+			if (taiko->mbhc.mbhc_cfg->reset_gnd_mic)
+				taiko->mbhc.mbhc_cfg->reset_gnd_mic(codec->card);
+		}
+	} else {
+		if (atomic_read(&taiko->hpmic_ref) == 0)
+			return 0;
+
+		if (atomic_dec_return(&taiko->hpmic_ref) == 0) {
+			ret = regulator_disable(taiko->hpmic_reg);
+			if (ret) {
+				pr_err("%s: Failed to disable hpmic switch %d\n",
+						__func__, ret);
+			}
+		}
+	}
+
+	return ret;
+}
 
 static int spkr_drv_wrnd_param_set(const char *val,
 				   const struct kernel_param *kp)
@@ -2765,10 +2852,6 @@ static int taiko_codec_enable_lineout(struct snd_soc_dapm_widget *w,
         }
 #endif
 //add by zhaocq for audio PA YDA145_EN end CR00874233
-		wcd9xxx_clsh_fsm(codec, &taiko->clsh_d,
-						 WCD9XXX_CLSH_STATE_LO,
-						 WCD9XXX_CLSH_REQ_DISABLE,
-						 WCD9XXX_CLSH_EVENT_POST_PA);
 		snd_soc_update_bits(codec, lineout_gain_reg, 0x40, 0x00);
 		pr_debug("%s: sleeping 5 ms after %s PA turn off\n",
 				__func__, w->name);
@@ -3426,6 +3509,9 @@ static int taiko_codec_enable_interpolator(struct snd_soc_dapm_widget *w,
 				  snd_soc_read(codec,
 				  rx_digital_gain_reg[w->shift])
 				  );
+		/* Check for Rx1 and Rx2 paths for uhqa mode update */
+		if (w->shift == 0 || w->shift == 1)
+			taiko_update_uhqa_mode(codec, (1 << w->shift));
 		break;
 	}
 	return 0;
@@ -3526,14 +3612,14 @@ static int taiko_hphl_dac_event(struct snd_soc_dapm_widget *w,
 	case SND_SOC_DAPM_PRE_PMU:
 		snd_soc_update_bits(codec, TAIKO_A_CDC_CLK_RDAC_CLK_EN_CTL,
 							0x02, 0x02);
-		if (!high_perf_mode) {
+		if (!high_perf_mode && !taiko_p->uhqa_mode) {
 			wcd9xxx_clsh_fsm(codec, &taiko_p->clsh_d,
 						 WCD9XXX_CLSH_STATE_HPHL,
 						 WCD9XXX_CLSH_REQ_ENABLE,
 						 WCD9XXX_CLSH_EVENT_PRE_DAC);
 		} else {
 			wcd9xxx_enable_high_perf_mode(codec, &taiko_p->clsh_d,
-						WCD9XXX_NON_UHQA_MODE,
+						taiko_p->uhqa_mode,
 						WCD9XXX_CLSAB_STATE_HPHL,
 						WCD9XXX_CLSAB_REQ_ENABLE);
 		}
@@ -3557,6 +3643,17 @@ static int taiko_hphl_dac_event(struct snd_soc_dapm_widget *w,
 	case SND_SOC_DAPM_POST_PMD:
 		snd_soc_update_bits(codec, TAIKO_A_CDC_CLK_RDAC_CLK_EN_CTL,
 							0x02, 0x00);
+		if (!high_perf_mode && !taiko_p->uhqa_mode) {
+			wcd9xxx_clsh_fsm(codec, &taiko_p->clsh_d,
+						 WCD9XXX_CLSH_STATE_HPHL,
+						 WCD9XXX_CLSH_REQ_DISABLE,
+						 WCD9XXX_CLSH_EVENT_POST_PA);
+		} else {
+			wcd9xxx_enable_high_perf_mode(codec, &taiko_p->clsh_d,
+						taiko_p->uhqa_mode,
+						WCD9XXX_CLSAB_STATE_HPHL,
+						WCD9XXX_CLSAB_REQ_DISABLE);
+		}
 		break;
 	}
 	return 0;
@@ -3576,14 +3673,14 @@ static int taiko_hphr_dac_event(struct snd_soc_dapm_widget *w,
 							0x04, 0x04);
 		snd_soc_update_bits(codec, w->reg, 0x40, 0x40);
 
-		if (!high_perf_mode) {
+		if (!high_perf_mode && !taiko_p->uhqa_mode) {
 			wcd9xxx_clsh_fsm(codec, &taiko_p->clsh_d,
 						 WCD9XXX_CLSH_STATE_HPHR,
 						 WCD9XXX_CLSH_REQ_ENABLE,
 						 WCD9XXX_CLSH_EVENT_PRE_DAC);
 		} else {
 			wcd9xxx_enable_high_perf_mode(codec, &taiko_p->clsh_d,
-						WCD9XXX_NON_UHQA_MODE,
+						taiko_p->uhqa_mode,
 						WCD9XXX_CLSAB_STATE_HPHR,
 						WCD9XXX_CLSAB_REQ_ENABLE);
 		}
@@ -3600,6 +3697,17 @@ static int taiko_hphr_dac_event(struct snd_soc_dapm_widget *w,
 		snd_soc_update_bits(codec, TAIKO_A_CDC_CLK_RDAC_CLK_EN_CTL,
 							0x04, 0x00);
 		snd_soc_update_bits(codec, w->reg, 0x40, 0x00);
+		if (!high_perf_mode && !taiko_p->uhqa_mode) {
+			wcd9xxx_clsh_fsm(codec, &taiko_p->clsh_d,
+						 WCD9XXX_CLSH_STATE_HPHR,
+						 WCD9XXX_CLSH_REQ_DISABLE,
+						 WCD9XXX_CLSH_EVENT_POST_PA);
+		} else {
+			wcd9xxx_enable_high_perf_mode(codec, &taiko_p->clsh_d,
+						taiko_p->uhqa_mode,
+						WCD9XXX_CLSAB_STATE_HPHR,
+						WCD9XXX_CLSAB_REQ_DISABLE);
+		}
 		break;
 	}
 	return 0;
@@ -3738,7 +3846,6 @@ static int taiko_hph_pa_event(struct snd_soc_dapm_widget *w,
 	struct taiko_priv *taiko = snd_soc_codec_get_drvdata(codec);
 	enum wcd9xxx_notify_event e_pre_on, e_post_off;
 	u8 req_clsh_state;
-	u8 req_clsab_state;
 	u32 pa_settle_time = TAIKO_HPH_PA_SETTLE_COMP_OFF;
 
 	pr_debug("%s: %s event = %d\n", __func__, w->name, event);
@@ -3746,12 +3853,10 @@ static int taiko_hph_pa_event(struct snd_soc_dapm_widget *w,
 		e_pre_on = WCD9XXX_EVENT_PRE_HPHL_PA_ON;
 		e_post_off = WCD9XXX_EVENT_POST_HPHL_PA_OFF;
 		req_clsh_state = WCD9XXX_CLSH_STATE_HPHL;
-		req_clsab_state = WCD9XXX_CLSAB_STATE_HPHL;
 	} else if (w->shift == 4) {
 		e_pre_on = WCD9XXX_EVENT_PRE_HPHR_PA_ON;
 		e_post_off = WCD9XXX_EVENT_POST_HPHR_PA_OFF;
 		req_clsh_state = WCD9XXX_CLSH_STATE_HPHR;
-		req_clsab_state = WCD9XXX_CLSAB_STATE_HPHR;
 	} else {
 		pr_err("%s: Invalid w->shift %d\n", __func__, w->shift);
 		return -EINVAL;
@@ -3771,7 +3876,7 @@ static int taiko_hph_pa_event(struct snd_soc_dapm_widget *w,
 		pr_debug("%s: sleep %d us after %s PA enable\n", __func__,
 				pa_settle_time, w->name);
 
-		if (!high_perf_mode) {
+		if (!high_perf_mode && !taiko->uhqa_mode) {
 			wcd9xxx_clsh_fsm(codec, &taiko->clsh_d,
 						 req_clsh_state,
 						 WCD9XXX_CLSH_REQ_ENABLE,
@@ -3786,18 +3891,6 @@ static int taiko_hph_pa_event(struct snd_soc_dapm_widget *w,
 
 		/* Let MBHC module know PA turned off */
 		wcd9xxx_resmgr_notifier_call(&taiko->resmgr, e_post_off);
-
-		if (!high_perf_mode) {
-			wcd9xxx_clsh_fsm(codec, &taiko->clsh_d,
-						 req_clsh_state,
-						 WCD9XXX_CLSH_REQ_DISABLE,
-						 WCD9XXX_CLSH_EVENT_POST_PA);
-		} else {
-			wcd9xxx_enable_high_perf_mode(codec, &taiko->clsh_d,
-						WCD9XXX_NON_UHQA_MODE,
-						req_clsab_state,
-						WCD9XXX_CLSAB_REQ_DISABLE);
-		}
 
 		break;
 	}
@@ -3869,6 +3962,10 @@ static int taiko_lineout_dac_event(struct snd_soc_dapm_widget *w,
 
 	case SND_SOC_DAPM_POST_PMD:
 		snd_soc_update_bits(codec, w->reg, 0x40, 0x00);
+		wcd9xxx_clsh_fsm(codec, &taiko->clsh_d,
+						 WCD9XXX_CLSH_STATE_LO,
+						 WCD9XXX_CLSH_REQ_DISABLE,
+						 WCD9XXX_CLSH_EVENT_POST_PA);
 		break;
 	}
 	return 0;
@@ -6415,6 +6512,12 @@ static irqreturn_t taiko_slimbus_irq(int irq, void *data)
 					 */
 				}
 			}
+			if (tx && port_id == TAIKO_MAD_SLIMBUS_TX_PORT) {
+				/* MAD is expected to hold the port open */
+				pr_debug("%s: MAD holding port %d open",
+						__func__, TAIKO_MAD_SLIMBUS_TX_PORT);
+				continue;
+			}
 			WARN(!cleared,
 			     "Couldn't find slimbus %s port %d for closing\n",
 			     (tx ? "TX" : "RX"), port_id);
@@ -7251,6 +7354,7 @@ static const struct wcd9xxx_mbhc_cb mbhc_cb = {
 	.setup_zdet = taiko_setup_zdet,
 	.compute_impedance = taiko_compute_impedance,
 	.get_hwdep_fw_cal = taiko_get_hwdep_fw_cal,
+	.enable_hpmic_switch = taiko_enable_hpmic_switch,
 };
 
 static const struct wcd9xxx_mbhc_intr cdc_intr_ids = {
@@ -7328,6 +7432,7 @@ static int taiko_post_reset_cb(struct wcd9xxx *wcd9xxx)
 					taiko_enable_mbhc_micbias,
 					&mbhc_cb, &cdc_intr_ids,
 					rco_clk_rate, true);
+
 		if (ret)
 			pr_err("%s: mbhc init failed %d\n", __func__, ret);
 		else
@@ -7534,16 +7639,17 @@ static int taiko_codec_probe(struct snd_soc_codec *codec)
 		dev_err(codec->dev, "%s hwdep failed %d\n", __func__, ret);
 		goto err_hwdep;
 	}
+
 	/* init and start mbhc */
 	ret = wcd9xxx_mbhc_init(&taiko->mbhc, &taiko->resmgr, codec,
 				taiko_enable_mbhc_micbias,
 				&mbhc_cb, &cdc_intr_ids,
 				rco_clk_rate, true);
+
 	if (ret) {
 		pr_err("%s: mbhc init failed %d\n", __func__, ret);
 		goto err_hwdep;
 	}
-
 	taiko->codec = codec;
 	for (i = 0; i < COMPANDER_MAX; i++) {
 		taiko->comp_enabled[i] = 0;
@@ -7567,6 +7673,10 @@ static int taiko_codec_probe(struct snd_soc_codec *codec)
 		pr_err("%s: bad pdata\n", __func__);
 		goto err_hwdep;
 	}
+
+	atomic_set(&taiko->hpmic_ref, 0);
+	taiko->hpmic_reg = taiko_codec_find_regulator(codec,
+							   WCD9XXX_VDD_HPMIC_SWITCH);
 
 	taiko->spkdrv_reg = taiko_codec_find_regulator(codec,
 						       WCD9XXX_VDD_SPKDRV_NAME);
@@ -7673,6 +7783,7 @@ static int taiko_codec_probe(struct snd_soc_codec *codec)
 	snd_soc_dapm_sync(dapm);
 
 	codec->ignore_pmdown_time = 1;
+
 	return ret;
 
 err_irq:
@@ -7703,6 +7814,7 @@ static int taiko_codec_remove(struct snd_soc_codec *codec)
 	/* cleanup resmgr */
 	wcd9xxx_resmgr_deinit(&taiko->resmgr);
 
+	taiko->hpmic_reg = NULL;
 	taiko->spkdrv_reg = NULL;
 
 	kfree(taiko->fw_data);
