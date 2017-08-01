@@ -295,7 +295,7 @@ int mdss_dsi_panel_reset(struct mdss_panel_data *pdata, int enable)
 			pr_err("gpio request failed\n");
 			return rc;
 		}
-		if (!pinfo->panel_power_on) {
+		if (!pinfo->cont_splash_enabled) {
 /*Gionee xiangzhong 2014-04-30 add for iovcc control by gpio begin*/
 #if defined(CONFIG_GN_Q_BSP_LCD_IOVCC_CONTROL_SUPPORT)
 		printk("mdss enable iovcc\n");
@@ -353,6 +353,7 @@ int mdss_dsi_panel_reset(struct mdss_panel_data *pdata, int enable)
 #endif
 /*Gionee xiangzhong 2013-12-16 add for reset timing begin*/
 		}
+
 		if (gpio_is_valid(ctrl_pdata->mode_gpio)) {
 			if (pinfo->mode_gpio_state == MODE_GPIO_HIGH)
 				gpio_set_value((ctrl_pdata->mode_gpio), 1);
