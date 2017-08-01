@@ -301,7 +301,6 @@ struct mdss_dsi_ctrl_pdata {
 	int irq_cnt;
 	int rst_gpio;
 	int disp_en_gpio;
-	int disp_te_gpio;
 /*Gionee xiangzhong 2014-04-30 add for iovcc control by gpio begin*/
 #if defined(CONFIG_GN_Q_BSP_LCD_IOVCC_CONTROL_SUPPORT)
 	int iovcc_enable_gpio;
@@ -314,7 +313,6 @@ struct mdss_dsi_ctrl_pdata {
 /*Gionee xiangzhong 2013-11-11 add for tps65132  end*/
 
 	int mode_gpio;
-	int disp_te_gpio_requested;
 	int bklt_ctrl;	/* backlight ctrl */
 	int pwm_period;
 	int pwm_pmic_gpio;
