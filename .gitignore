@@ -86,3 +86,7 @@ GTAGS
 \#*#
 
 arch/arm/mach-msm/oppo/
+
+arch/arm/configs/cyanogenmod_bacon_defconfig
+
+arch/arm/configs/cyanogenmod_find7_defconfig
