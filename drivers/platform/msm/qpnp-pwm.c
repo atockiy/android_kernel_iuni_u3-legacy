@@ -1033,6 +1033,7 @@ static int qpnp_lpg_configure_lut_state(struct pwm_device *pwm,
 					addr, 1, chip);
 	if (rc)
 		return rc;
+
 //Gionee liujiang 2013-11-14 add for lpg_mode bug start
 	mdelay(5);
 //Gionee liujiang 2013-11-14 add for lpg_mode bug end

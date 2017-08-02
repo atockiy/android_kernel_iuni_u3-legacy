@@ -133,7 +133,7 @@ static void msm_actuator_parse_i2c_params(struct msm_actuator_ctrl_t *a_ctrl,
 					i2c_byte2 = (value & 0xFF00) >> 8;
 				}
 			}else if(write_arr[i].reg_addr != 0X0304){  //add by chenqiang 
-                i2c_byte1 = (value & 0xFF00) >> 8;
+				i2c_byte1 = (value & 0xFF00) >> 8;
 				i2c_byte2 = value & 0xFF;
 			}
 		} else {
@@ -862,6 +862,7 @@ static int32_t msm_actuator_init(struct msm_actuator_ctrl_t *a_ctrl,
 	if (a_ctrl->func_tbl->actuator_init_step_table)
 		rc = a_ctrl->func_tbl->
 			actuator_init_step_table(a_ctrl, set_info);
+
 //gionee chenqiang add for imx135 ois feature 20140505 begin
         if (a_ctrl->func_tbl->gn_sunny_imx135_ois_init)
 		{

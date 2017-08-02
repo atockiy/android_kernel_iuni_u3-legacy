@@ -235,6 +235,7 @@ static int of_batterydata_load_battery_data(struct device_node *node,
 	OF_PROP_READ(batt_data->iterm_ua, "chg-term-ua", node, rc, true);
 
 	batt_data->batt_id_kohm = best_id_kohm;
+
 //Gionee liujiang 2014-05-21 add for LG batterydata start
 	printk("%s: fcc-mah = %d\n",__func__,batt_data->fcc);
 	printk("%s: default-rbatt-mohm = %d\n",__func__,batt_data->default_rbatt_mohm);

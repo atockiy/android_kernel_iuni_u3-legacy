@@ -137,7 +137,7 @@ static void isa1200_vib_set(struct isa1200_chip *haptic, int enable)
 
 		if (haptic->pdata->mode_ctrl == PWM_INPUT_MODE) {
 			int period_us = haptic->period_ns / 1000;
-			
+
 //GIONEE liujiang 2013-10-21 add for isa1200 start
 #ifdef CONFIG_GN_Q_BSP_ISA1200_LEVEL_SUPPORT
 			if(enable >= 100){
@@ -192,6 +192,7 @@ static void isa1200_vib_set(struct isa1200_chip *haptic, int enable)
 				haptic->clk_on = true;
 			}
 			mutex_unlock(&haptic->lock_clk);
+
 //GIONEE liujiang 2013-10-21 add for isa1200 start
 #ifdef CONFIG_GN_Q_BSP_ISA1200_LEVEL_SUPPORT
 			rc = isa1200_write_reg(haptic->client,
@@ -316,7 +317,6 @@ static void isa1200_chip_enable(struct timed_output_dev *dev, int value)
 
 	mutex_lock(&haptic->lock);
 	hrtimer_cancel(&haptic->timer);
-
 //Gionee liujiang 2013-10-21 add for isa1200 start	
 	printk("%s: time = %d\n",__func__,value);
 #ifdef CONFIG_GN_Q_BSP_ISA1200_LEVEL_SUPPORT
@@ -335,7 +335,6 @@ static void isa1200_chip_enable(struct timed_output_dev *dev, int value)
 	haptic->vibing_index = 0;
 #endif
 //Gionee liujiang 2013-10-21 add for isa1200 end		
-
 	if (value == 0)
 		haptic->enable = 0;
 	else {
@@ -367,7 +366,6 @@ static enum hrtimer_restart isa1200_vib_timer_func(struct hrtimer *timer)
 {
 	struct isa1200_chip *haptic = container_of(timer, struct isa1200_chip,
 					timer);
-
 //Gionee liujiang 2013-10-21 add for isa1200 start	
 #ifdef CONFIG_GN_Q_BSP_ISA1200_LEVEL_SUPPORT
 	if (haptic->vib_feature[haptic->vibing_index][VIB_TIME] > 0)
@@ -417,7 +415,6 @@ static int isa1200_setup(struct i2c_client *client)
 //Gionee liujiang 2013-10-18 add for CR00921328 start
 	udelay(500);
 //Gionee liujiang 2013-10-18 add for CR00921328 end
-
 	value =	(haptic->pdata->smart_en << 3) |
 		(haptic->pdata->is_erm << 5) |
 		(haptic->pdata->ext_clk_en << 7);
@@ -436,8 +433,7 @@ static int isa1200_setup(struct i2c_client *client)
 			goto reset_hctrl1;
 		}
 	}
-//GIONEE liujiang 2013-09-13 add for 205HZ motor start
-	
+//GIONEE liujiang 2013-09-13 add for 205HZ motor start	
 	if (haptic->pdata->mode_ctrl == PWM_GEN_MODE) {
 		temp = haptic->pdata->pwm_fd.pwm_div;
 		if (temp < 128 || temp > 1024 || temp % 128) {
@@ -900,7 +896,6 @@ static int __devinit isa1200_probe(struct i2c_client *client,
 	device_create_file(haptic->dev.dev,&dev_attr_pattern);
 #endif
 //Gionee liujiang 2013-10-21 add for isa1200 end	
-
 	ret = gpio_is_valid(pdata->hap_en_gpio);
 	if (ret) {
 		ret = gpio_request(pdata->hap_en_gpio, "haptic_en_gpio");
@@ -938,7 +933,6 @@ static int __devinit isa1200_probe(struct i2c_client *client,
 //Gionee liujiang 2013-10-18 add for CR00921328 start
 	mdelay(5);
 //Gionee liujiang 2013-10-18 add for CR00921328 end
-
 	ret = isa1200_setup(client);
 	if (ret) {
 		dev_err(&client->dev, "%s: setup fail %d\n", __func__, ret);

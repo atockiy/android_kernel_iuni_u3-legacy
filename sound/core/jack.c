@@ -35,7 +35,6 @@
 #include <linux/sched.h> 
 #include <linux/interrupt.h>  
 
-
 static int jack_switch_types[] = {
 	SW_HEADPHONE_INSERT,
 	SW_MICROPHONE_INSERT,
@@ -160,7 +159,6 @@ static void snd_jack_report_event(struct snd_jack *jack, int status)
 }
 #endif
 //Gionee huangzhuolin 20140626 add for U2 Multi-function headset CR01296447 end
-
 static int snd_jack_dev_free(struct snd_device *device)
 {
 	struct snd_jack *jack = device->device_data;
@@ -392,7 +390,6 @@ void snd_jack_report(struct snd_jack *jack, int status)
 	input_sync(jack->input_dev);
 #endif
 //Gionee huangzhuolin 20140626 add for U2 Multi-function headset CR01296447 end
-
 }
 EXPORT_SYMBOL(snd_jack_report);
 

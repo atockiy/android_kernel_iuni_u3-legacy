@@ -282,7 +282,6 @@ static struct usb_ext_notification *usb_ext;
 	dev_printk(KERN_ERR, dev, format, ##arg)
 #endif
 //Gionee liujiang add for charger debug end
-
 /**
  *
  * Read register with debug info.
@@ -1788,6 +1787,7 @@ static const char *chg_to_string(enum dwc3_chg_type chg_type)
 	default:			return "UNKNOWN_CHARGER";
 	}
 }
+
 //Gionee liujiang 2013-12-16 modify for non-standard charger begin
 #if defined(CONFIG_GN_Q_BSP_PM_NON_STANDARD_CHARGER_SUPPORT)
 #define DWC3_CHG_DCD_POLL_TIME		(300 * HZ/1000) /* 300 msec */

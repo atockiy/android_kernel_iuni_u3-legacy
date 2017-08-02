@@ -284,6 +284,7 @@ int mdss_dsi_panel_reset(struct mdss_panel_data *pdata, int enable)
 
 	pr_debug("%s: enable = %d\n", __func__, enable);
 	pinfo = &(ctrl_pdata->panel_data.panel_info);
+
 /*Gionee xiangzhong 2014-04-30 add for iovcc control by gpio begin*/
 #if defined(CONFIG_GN_Q_BSP_LCD_IOVCC_CONTROL_SUPPORT)
 	lcd_vendor_check();
@@ -341,7 +342,6 @@ int mdss_dsi_panel_reset(struct mdss_panel_data *pdata, int enable)
 				if (pdata->panel_info.rst_seq[++i])
 					usleep(pinfo->rst_seq[i] * 1000);
 			}
-
 /*Gionee xiangzhong 2013-12-16 add for reset timing begin*/
 #ifdef CONFIG_GN_Q_BSP_LCD_RESET_SUPPORT
 		gpio_set_value((ctrl_pdata->rst_gpio), 1);
@@ -461,6 +461,7 @@ static int mdss_dsi_panel_partial_update(struct mdss_panel_data *pdata)
 
 	return rc;
 }
+
 /*Gionee xiangzhong 2013-12-16 add for lm3630 backlight begin*/
 #ifdef CONFIG_GN_Q_BSP_BACKLIGHT_LM3630_SUPPORT
 void mdss_dsi_panel_lm3630(unsigned int bl_level)

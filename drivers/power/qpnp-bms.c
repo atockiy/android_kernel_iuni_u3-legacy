@@ -2486,7 +2486,6 @@ static int calculate_state_of_charge(struct qpnp_bms_chip *chip,
 		}
 #endif
 //Gionee wudp 2013-12-14 add for optimize bms soc end
-
 		chip->last_ocv_uv = find_ocv_for_pc(chip, batt_temp,
 				find_pc_for_soc(chip, &params, shutdown_soc));
 		params.ocv_charge_uah = find_ocv_charge_for_soc(chip,

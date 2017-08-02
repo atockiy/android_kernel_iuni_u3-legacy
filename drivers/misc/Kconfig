@@ -678,10 +678,8 @@ config UID_CPUTIME
 	  Per UID based cpu time statistics exported to /proc/uid_cputime
 
 config GN_DEVICE_TYPE_CHECK
-    tristate "Gionee Device Check"
-    default n
-
-
+	tristate "Gionee Device Check"
+	default n
 
 source "drivers/misc/c2port/Kconfig"
 source "drivers/misc/eeprom/Kconfig"

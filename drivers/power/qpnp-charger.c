@@ -5480,7 +5480,6 @@ qpnp_charger_probe(struct spmi_device *spmi)
 			qpnp_chg_masked_write(chip, chip->usb_chgpth_base + USB_OVP_CTL, 0x30, 0x0, 1); 
 			#endif
 			//Gionee wudp 2013-10-26 add for PMIC OVP 9.5V end
-			
 			if (rc) {
 				if (rc != -EPROBE_DEFER)
 					pr_err("Failed to init subtype 0x%x rc=%d\n",

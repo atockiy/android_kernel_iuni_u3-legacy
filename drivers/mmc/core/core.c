@@ -1283,6 +1283,7 @@ void mmc_set_data_timeout(struct mmc_data *data, const struct mmc_card *card)
 	mult = mmc_card_sd(card) ? 100 : 50;
 #else
 	mult = mmc_card_sd(card) ? 100 : 10;
+
 #endif
 //Gionee chuqf 2014-4-18 add enforce emmc timeout end
 	/*
@@ -1333,6 +1334,7 @@ void mmc_set_data_timeout(struct mmc_data *data, const struct mmc_card *card)
 			limit_us = 3000000;
 		else
 			limit_us = 100000;
+
 #endif
 //Gionee chuqf 2014-4-18 add enforce emmc timeout end
 		/*

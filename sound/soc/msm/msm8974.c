@@ -1728,7 +1728,6 @@ void *def_taiko_mbhc_cal(void)
 	btn_low = wcd9xxx_mbhc_cal_btn_det_mp(btn_cfg, MBHC_BTN_DET_V_BTN_LOW);
 	btn_high = wcd9xxx_mbhc_cal_btn_det_mp(btn_cfg,
 					       MBHC_BTN_DET_V_BTN_HIGH);
-	
 //Gionee huangzhuolin 20140626 add for U2 Multi-function headset CR01296447 begin
 #ifdef CONFIG_GN_Q_BSP_AUDIO_MBHC_CALIBRATION
 /******************************************************

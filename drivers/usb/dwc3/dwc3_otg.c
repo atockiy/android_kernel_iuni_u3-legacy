@@ -47,7 +47,6 @@ static void dwc3_otg_reset(struct dwc3_otg *dotg);
 	dev_printk(KERN_ERR, dev, format, ##arg)
 #endif
 //Gionee liujiang add for charger debug end
-
 /**
  * dwc3_otg_set_host_regs - reset dwc3 otg registers to host operation.
  *

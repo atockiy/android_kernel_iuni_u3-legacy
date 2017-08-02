@@ -33,6 +33,7 @@
 
 #define DEFINE_MSM_MUTEX(mutexname) \
 	static struct mutex mutexname = __MUTEX_INITIALIZER(mutexname)
+
 //gionee chenqiang add for imx135 ois feature 20140505 begin
 void RegWriteA(uint32_t add , uint16_t data);
 void RamWriteA(uint32_t add , uint16_t data);

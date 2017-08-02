@@ -409,7 +409,6 @@ int msm_sensor_power_down(struct msm_sensor_ctrl_t *s_ctrl)
 	}
 
 	oispower_flag = 0; //add by gionee zhaocuiqin for ois init
-
 	power_info = &s_ctrl->sensordata->power_info;
 	sensor_device_type = s_ctrl->sensor_device_type;
 	sensor_i2c_client = s_ctrl->sensor_i2c_client;
@@ -469,6 +468,7 @@ int msm_sensor_power_up(struct msm_sensor_ctrl_t *s_ctrl)
 			else {
 		        msm_camera_power_down(power_info, s_ctrl->sensor_device_type,
 					sensor_i2c_client);
+
 			}
         } else
 	        break;
@@ -1013,6 +1013,7 @@ int msm_sensor_config(struct msm_sensor_ctrl_t *s_ctrl, void __user *argp)
 			rc = -EFAULT;
 		}
 		break;
+
     //Gionee liushengbin 20131108 modify for ov4688 otp start
     case CFG_SET_INIT_SETTING:
          if(s_ctrl->gn_otp_func_tbl != NULL) {
