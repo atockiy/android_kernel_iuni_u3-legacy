@@ -1476,11 +1476,6 @@ wcd9xxx_cs_find_plug_type(struct wcd9xxx_mbhc *mbhc,
 			 d->_type, d->swap_gnd, d->mic_bias);
 
 		if (
-#ifndef CONFIG_MACH_OPPO
-		 (!d->mic_bias &&
-		 (d->_vdces >= WCD9XXX_CS_MEAS_INVALD_RANGE_LOW_MV &&
-		  d->_vdces <= WCD9XXX_CS_MEAS_INVALD_RANGE_HIGH_MV)) ||
-#endif
 		 (d->mic_bias &&
 		 (d->_vdces >= WCD9XXX_MEAS_INVALD_RANGE_LOW_MV &&
 		  d->_vdces <= WCD9XXX_MEAS_INVALD_RANGE_HIGH_MV))) {
