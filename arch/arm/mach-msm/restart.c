@@ -265,9 +265,9 @@ static void msm_restart_prepare(const char *cmd)
 	/* gionee add for dump switch */
 	else {
 	/* end */
-		/* Kill download mode if master-kill switch is set */
-		if (!download_mode)
-			set_dload_mode(0);
+	/* Kill download mode if master-kill switch is set */
+	if (!download_mode)
+		set_dload_mode(0);
 	/* gionee add for dump switch */
 	}
 	/* end */

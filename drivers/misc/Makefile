@@ -74,4 +74,3 @@ obj-$(CONFIG_QPNP_MISC) += qpnp-misc.o
 obj-$(CONFIG_UID_CPUTIME) 	+= uid_cputime.o
 #Gionee luliya 2014-5-22 add for tp device check
 obj-$(CONFIG_GN_DEVICE_TYPE_CHECK) += gn_device_check.o
-

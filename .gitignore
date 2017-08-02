@@ -85,10 +85,5 @@ GTAGS
 *~
 \#*#
 
-arch/arm/mach-msm/oppo/
-
-arch/arm/configs/cyanogenmod_bacon_defconfig
-
-arch/arm/configs/cyanogenmod_find7_defconfig
-
-arch/arm/boot/dts/msm8974-oppo/
+# Generated source files
+smd_rpc_sym.c

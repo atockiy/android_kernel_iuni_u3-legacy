@@ -210,7 +210,7 @@ static int of_batterydata_load_battery_data(struct device_node *node,
 			batt_data->fcc_temp_lut);
 	if (rc)
 		return rc;
-    
+
 	rc = of_batterydata_read_pc_temp_ocv_lut(node,
 			"qcom,pc-temp-ocv-lut",
 			batt_data->pc_temp_ocv_lut);

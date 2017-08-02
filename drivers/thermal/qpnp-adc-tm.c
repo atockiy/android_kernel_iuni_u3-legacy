@@ -891,7 +891,6 @@ static int32_t qpnp_adc_tm_configure(struct qpnp_adc_tm_chip *chip,
 					chan_prop->hw_settle_time);
 #endif
 //Gionee yezg 2014-3-13 modify for pmic tm_low_interrupt end
-
 	if (rc < 0) {
 		pr_err("adc-tm hw settling time setup err\n");
 		return rc;

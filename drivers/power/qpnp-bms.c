@@ -1944,7 +1944,6 @@ static int report_cc_based_soc(struct qpnp_bms_chip *chip)
 	pr_debug("last_soc = %d, calculated_soc = %d, soc = %d, time since last change = %d\n",
 			chip->last_soc, chip->calculated_soc,
 			soc, time_since_last_change_sec);
-	
 	chip->last_soc = bound_soc(soc);
 	backup_soc_and_iavg(chip, batt_temp, chip->last_soc);
 //Gionee wudp 2013-12-05 add for bms debug log begin
@@ -2479,7 +2478,6 @@ static int calculate_state_of_charge(struct qpnp_bms_chip *chip,
 		 */
 		pr_debug("soc = %d before forcing shutdown_soc = %d\n",
 							soc, shutdown_soc);
-
 //Gionee wudp 2014-05-04 add for optimize bms soc begin
 #if defined(CONFIG_GN_Q_BSP_BMS_OPTIMIZE_SOC_SUPPORT) 
 		if(abs(soc - shutdown_soc) > 8){

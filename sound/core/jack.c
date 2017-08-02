@@ -272,7 +272,6 @@ int snd_jack_new(struct snd_card *card, const char *id, int type,
 	INIT_DELAYED_WORK(&report_hook_long_press_work, report_hook_long_press_handle);
 #endif
 //Gionee huangzhuolin 20140626 add for U2 Multi-function headset CR01296447 end
-
 	return 0;
 
 fail_input:
@@ -333,7 +332,7 @@ int snd_jack_set_key(struct snd_jack *jack, enum snd_jack_types type,
 
 	jack->type |= type;
 	jack->key[key] = keytype;
-	
+
 	return 0;
 }
 EXPORT_SYMBOL(snd_jack_set_key);
@@ -376,10 +375,10 @@ void snd_jack_report(struct snd_jack *jack, int status)
 
 	for (i = 0; i < ARRAY_SIZE(jack->key); i++) {
 		int testbit = SND_JACK_BTN_0 >> i;
-		if (jack->type & testbit) {
+
+		if (jack->type & testbit)
 			input_report_key(jack->input_dev, jack->key[i],
 					 status & testbit);
-		}
 	}
 
 	for (i = 0; i < ARRAY_SIZE(jack_switch_types); i++) {

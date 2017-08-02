@@ -565,7 +565,7 @@ static int dwc3_otg_set_power(struct usb_phy *phy, unsigned mA)
 //Gionee liujiang 2013-12-16 modify for non-standard charger begin
 #if defined(CONFIG_GN_Q_BSP_PM_NON_STANDARD_CHARGER_SUPPORT)
 	else if (dotg->charger->chg_type == DWC3_DCP_CHARGER ||
-			dotg->charger->chg_type == DWC3_PROPRIETARY_CHARGER  ||
+			dotg->charger->chg_type == DWC3_PROPRIETARY_CHARGER ||
 			dotg->charger->chg_type == DWC3_FLOATED_CHARGER)
 #else
 	else if (dotg->charger->chg_type == DWC3_DCP_CHARGER ||

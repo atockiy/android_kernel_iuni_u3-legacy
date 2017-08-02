@@ -2800,7 +2800,6 @@ static int taiko_codec_enable_lineout(struct snd_soc_dapm_widget *w,
 	struct snd_soc_codec *codec = w->codec;
 	struct taiko_priv *taiko = snd_soc_codec_get_drvdata(codec);
 	u16 lineout_gain_reg;
-	
 //add by zhaocq for audio PA YDA145_EN begin CR00874233
 #ifdef CONFIG_GN_Q_BSP_AUDIO_HEADSET_SUPPORT	
 	struct wcd9xxx_pdata *pdata;

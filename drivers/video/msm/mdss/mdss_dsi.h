@@ -97,7 +97,6 @@ enum dsi_panel_bl_ctrl {
         BL_LM3630,
 #endif
 /*Gionee xiangzhong 2013-12-16 add for lm3630 backlight end*/
-
 	UNKNOWN_CTRL,
 };
 
@@ -311,7 +310,6 @@ struct mdss_dsi_ctrl_pdata {
         int tps_en_gpio;
 #endif
 /*Gionee xiangzhong 2013-11-11 add for tps65132  end*/
-
 	int mode_gpio;
 	int bklt_ctrl;	/* backlight ctrl */
 	int pwm_period;
@@ -433,7 +431,6 @@ int mdss_dsi_panel_init(struct device_node *node,
 		bool cmd_cfg_cont_splash);
 int mdss_panel_get_dst_fmt(u32 bpp, char mipi_mode, u32 pixel_packing,
 				char *dst_format);
-
 /*Gionee xiangzhong 2013-12-16 add for lm3630 backlight begin*/
 #ifdef CONFIG_GN_Q_BSP_BACKLIGHT_LM3630_SUPPORT 
 void set_backlight_lm3630(unsigned int level);

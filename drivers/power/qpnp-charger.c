@@ -30,12 +30,11 @@
 #include <linux/regulator/machine.h>
 #include <linux/of_batterydata.h>
 #include <linux/qpnp-revid.h>
-#include <linux/alarmtimer.h>
+#include <linux/android_alarm.h>
 #include <linux/spinlock.h>
 #include <linux/gpio.h>
 #include <linux/of_gpio.h>
 #include <linux/qpnp/pin.h>
-#include <linux/wakelock.h>
 
 /* Interrupt offsets */
 #define INT_RT_STS(base)			(base + 0x10)
@@ -2432,7 +2431,6 @@ get_prop_battery_charge_voltage_now(struct qpnp_chg_chip *chip)
 }
 #endif
 //Gionee wudp 2013-09-10 add for charger voltage end
-
 static int
 get_prop_battery_voltage_now(struct qpnp_chg_chip *chip)
 {
@@ -2666,7 +2664,6 @@ get_prop_capacity(struct qpnp_chg_chip *chip)
 				&& !qpnp_chg_is_usb_chg_plugged_in(chip))
 				pr_warn_ratelimited("Battery 0, CHG absent\n");
 		}
-
 //Gionee wudp 2013-12-10 add for optimize soc begin
 #if defined(CONFIG_GN_Q_BSP_OPTIMIZE_SOC_SUPPORT)
 		//printk(KERN_INFO "get_prop_capacity1 charger_in=%d last_soc=%d soc=%d battery_status=%d",
@@ -4128,7 +4125,7 @@ mutex_unlock:
 	return rc;
 }
 
-#define POWER_STAGE_REDUCE_CHECK_PERIOD_NS		(20LL * NSEC_PER_SEC)
+#define POWER_STAGE_REDUCE_CHECK_PERIOD_SECONDS		20
 #define POWER_STAGE_REDUCE_MAX_VBAT_UV			3900000
 #define POWER_STAGE_REDUCE_MIN_VCHG_UV			4800000
 #define POWER_STAGE_SEL_MASK				0x0F
@@ -4232,6 +4229,7 @@ int get_vbat_averaged(struct qpnp_chg_chip *chip, int sample_count)
 static void
 qpnp_chg_reduce_power_stage(struct qpnp_chg_chip *chip)
 {
+	struct timespec ts;
 	bool power_stage_reduced_in_hw = qpnp_chg_is_power_stage_reduced(chip);
 	bool reduce_power_stage = false;
 	int vbat_uv = get_vbat_averaged(chip, 16);
@@ -4291,8 +4289,11 @@ qpnp_chg_reduce_power_stage(struct qpnp_chg_chip *chip)
 	}
 
 	if (usb_present && usb_ma_above_wall) {
-		alarm_start_relative(&chip->reduce_power_stage_alarm, 
-				ns_to_ktime(POWER_STAGE_REDUCE_CHECK_PERIOD_NS));
+		getnstimeofday(&ts);
+		ts.tv_sec += POWER_STAGE_REDUCE_CHECK_PERIOD_SECONDS;
+		alarm_start_range(&chip->reduce_power_stage_alarm,
+					timespec_to_ktime(ts),
+					timespec_to_ktime(ts));
 	} else {
 		pr_debug("stopping power stage workaround\n");
 		chip->power_stage_workaround_running = false;
@@ -4327,14 +4328,13 @@ qpnp_chg_reduce_power_stage_work(struct work_struct *work)
 	qpnp_chg_reduce_power_stage(chip);
 }
 
-static enum alarmtimer_restart
-qpnp_chg_reduce_power_stage_callback(struct alarm *alarm, ktime_t now)
+static void
+qpnp_chg_reduce_power_stage_callback(struct alarm *alarm)
 {
 	struct qpnp_chg_chip *chip = container_of(alarm, struct qpnp_chg_chip,
 						reduce_power_stage_alarm);
 
 	schedule_work(&chip->reduce_power_stage_work);
-	return ALARMTIMER_NORESTART;
 }
 
 static int
@@ -5316,7 +5316,7 @@ qpnp_charger_probe(struct spmi_device *spmi)
 
 	mutex_init(&chip->jeita_configure_lock);
 	spin_lock_init(&chip->usbin_health_monitor_lock);
-	alarm_init(&chip->reduce_power_stage_alarm, ALARM_REALTIME,
+	alarm_init(&chip->reduce_power_stage_alarm, ANDROID_ALARM_RTC_WAKEUP,
 			qpnp_chg_reduce_power_stage_callback);
 	INIT_WORK(&chip->reduce_power_stage_work,
 			qpnp_chg_reduce_power_stage_work);
@@ -5475,7 +5475,6 @@ qpnp_charger_probe(struct spmi_device *spmi)
 		case SMBCL_USB_CHGPTH_SUBTYPE:
 			chip->usb_chgpth_base = resource->start;
 			rc = qpnp_chg_hwinit(chip, subtype, spmi_resource);
-			
 			//Gionee wudp 2013-10-26 add for PMIC OVP 9.5V begin
 			#if defined(CONFIG_GN_Q_BSP_OVP_9P5V_SUPPORT)
 			qpnp_chg_masked_write(chip, chip->usb_chgpth_base + USB_OVP_CTL, 0x30, 0x0, 1); 
@@ -5492,13 +5491,11 @@ qpnp_charger_probe(struct spmi_device *spmi)
 		case SMBB_DC_CHGPTH_SUBTYPE:
 			chip->dc_chgpth_base = resource->start;
 			rc = qpnp_chg_hwinit(chip, subtype, spmi_resource);
-
 			//Gionee wudp 2013-10-26 add for PMIC OVP 9.5V begin
 			#if defined(CONFIG_GN_Q_BSP_OVP_9P5V_SUPPORT)
 			qpnp_chg_masked_write(chip, chip->dc_chgpth_base + USB_OVP_CTL, 0x30, 0x0, 1); 
 			#endif
 			//Gionee wudp 2013-10-26 add for PMIC OVP 9.5V end
-		
 			if (rc) {
 				pr_err("Failed to init subtype 0x%x rc=%d\n",
 						subtype, rc);
