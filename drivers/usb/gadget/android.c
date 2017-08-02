@@ -3244,13 +3244,14 @@ static int __devinit android_probe(struct platform_device *pdev)
 			pr_err("unable to allocate platform data\n");
 			return -ENOMEM;
 		}
+
+		of_property_read_u32(pdev->dev.of_node,
+				"qcom,android-usb-swfi-latency",
+				&pdata->swfi_latency);
 //gionee, chuqf, modified for cd-rom, begin
 #ifdef CONFIG_GN_CDROM_SUPPORT
 		pdata->cdrom = true;
 #else
-		of_property_read_u32(pdev->dev.of_node,
-				"qcom,android-usb-swfi-latency",
-				&pdata->swfi_latency);
 		pdata->cdrom = of_property_read_bool(pdev->dev.of_node,
 				"qcom,android-usb-cdrom");
 #endif
