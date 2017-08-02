@@ -806,7 +806,6 @@ int msm_camera_init_gpio_pin_tbl(struct device_node *of_node,
 			gconf->gpio_num_info->gpio_num[SENSOR_GPIO_VAF]);
 	}
 //add by gionee zhaocuiqin for CR01324957 20140721 end
-
 	if (of_property_read_bool(of_node, "qcom,gpio-flash-en") == true) {
 		rc = of_property_read_u32(of_node, "qcom,gpio-flash-en", &val);
 		if (rc < 0) {

@@ -26,8 +26,8 @@ static struct msm_isp_bandwidth_mgr isp_bandwidth_mgr;
 
 // Gionee <zhaocuiqin> <2014-12-04> modify for CR01419353/CR01418545 begin
 #ifdef ORIGINAL_VERSION
-#define MSM_ISP_MIN_AB 300000000
-#define MSM_ISP_MIN_IB 450000000
+#define MSM_ISP_MIN_AB 450000000
+#define MSM_ISP_MIN_IB 900000000
 #else
 #define MSM_ISP_MIN_AB 450000000*2
 #define MSM_ISP_MIN_IB 900000000*2

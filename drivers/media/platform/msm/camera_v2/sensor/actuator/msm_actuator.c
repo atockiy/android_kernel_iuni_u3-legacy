@@ -986,7 +986,6 @@ static int32_t msm_actuator_config(struct msm_actuator_ctrl_t *a_ctrl,
 			pr_err("gn_sunny_set_ois_mode failed %d\n", rc);
 		break;
 //gionee zhaocuiqin add for ois mode end 20140626	
-
 	case CFG_ACTUATOR_POWERUP:
 		rc = msm_actuator_power_up(a_ctrl);
 		if (rc < 0)

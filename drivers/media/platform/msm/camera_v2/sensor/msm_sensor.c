@@ -407,9 +407,9 @@ int msm_sensor_power_down(struct msm_sensor_ctrl_t *s_ctrl)
 			__func__, __LINE__, s_ctrl);
 		return -EINVAL;
 	}
-	
-    oispower_flag = 0; //add by gionee zhaocuiqin for ois init
-	
+
+	oispower_flag = 0; //add by gionee zhaocuiqin for ois init
+
 	power_info = &s_ctrl->sensordata->power_info;
 	sensor_device_type = s_ctrl->sensor_device_type;
 	sensor_i2c_client = s_ctrl->sensor_i2c_client;

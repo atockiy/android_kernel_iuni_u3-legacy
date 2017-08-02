@@ -36,7 +36,12 @@
 #define VFE40_8x26_VERSION 0x20000013
 #define VFE40_8x26V2_VERSION 0x20010014
 
-
+//Gionee zhaocuiqin for CR01398298 20141124 begin
+//#define VFE40_BURST_LEN 1
+//#define VFE40_STATS_BURST_LEN 1
+#define VFE40_BURST_LEN 2
+#define VFE40_STATS_BURST_LEN 2
+//Gionee zhaocuiqin for CR01398298 20141124 end
 /* STATS_SIZE (BE + BG + BF+ RS + CS + IHIST + BHIST ) = 392 */
 #define VFE40_STATS_SIZE 392
 
