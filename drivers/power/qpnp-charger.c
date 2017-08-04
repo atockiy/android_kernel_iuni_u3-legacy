@@ -2947,13 +2947,14 @@ qpnp_chg_bat_if_configure_btc(struct qpnp_chg_chip *chip)
 		mask |= BTC_COLD;
 	}
 
-	if (chip->btc_disabled)
+	if (chip->btc_disabled){
 		mask |= BTC_CONFIG_ENABLED;
 //Gionee wudp 2013-10-16 add for btc config begin
 #if defined(CONFIG_GN_Q_BSP_BTC_CONFIG_SUPPORT)
 		btc_cfg |= BTC_CONFIG_ENABLED;
 #endif
 //Gionee wudp 2013-10-16 add for btc config end
+	}
 
 	return qpnp_chg_masked_write(chip,
 			chip->bat_if_base + BAT_IF_BTC_CTRL,
