@@ -1446,13 +1446,13 @@ int mdss_dsi_panel_init(struct device_node *node,
 {
 	int rc = 0;
 	static const char *panel_name;
-/*Gionee xiangzhong 2012-09-19 add for device tpye check begin*/
+/*Gionee xiangzhong 2012-09-19 add for device type check begin*/
 #if defined(CONFIG_GN_DEVICE_TYPE_CHECK) 
 	static const char *device_panel_name;
 	struct gn_device_info gn_mydev_info;
 	gn_mydev_info.gn_dev_type = GN_DEVICE_TYPE_LCD;
 #endif
-/* Gionee xiangzhong 2012-09-19 add for device tpye check end*/
+/* Gionee xiangzhong 2012-09-19 add for device type check end*/
 	struct mdss_panel_info *pinfo;
 
 	if (!node || !ctrl_pdata) {
@@ -1470,7 +1470,7 @@ int mdss_dsi_panel_init(struct device_node *node,
 	else
 		pr_info("%s: Panel Name = %s\n", __func__, panel_name);
 
-/*Gionee xiangzhong 2012-09-19 add for device tpye check begin */ 
+/*Gionee xiangzhong 2012-09-19 add for device type check begin */ 
 #if defined(CONFIG_GN_DEVICE_TYPE_CHECK) 
 	if(strstr(panel_name, "sharp"))
 		device_panel_name = "sharp_r63419";
@@ -1482,7 +1482,7 @@ int mdss_dsi_panel_init(struct device_node *node,
 	strcpy(gn_mydev_info.name, device_panel_name);
 	gn_set_device_info(gn_mydev_info);
 #endif
-/*Gionee xiangzhong 2012-09-19 add for device tpye check end*/
+/*Gionee xiangzhong 2012-09-19 add for device type check end*/
 	rc = mdss_panel_parse_dt(node, ctrl_pdata);
 	if (rc) {
 		pr_err("%s:%d panel dt parse failed\n", __func__, __LINE__);
