@@ -1449,12 +1449,11 @@ int mdss_dsi_panel_init(struct device_node *node,
 /*Gionee xiangzhong 2012-09-19 add for device type check begin*/
 #if defined(CONFIG_GN_DEVICE_TYPE_CHECK) 
 	static const char *device_panel_name;
+	struct mdss_panel_info *pinfo;
 	struct gn_device_info gn_mydev_info;
 	gn_mydev_info.gn_dev_type = GN_DEVICE_TYPE_LCD;
 #endif
 /* Gionee xiangzhong 2012-09-19 add for device type check end*/
-	struct mdss_panel_info *pinfo;
-
 	if (!node || !ctrl_pdata) {
 		pr_err("%s: Invalid arguments\n", __func__);
 		return -ENODEV;
