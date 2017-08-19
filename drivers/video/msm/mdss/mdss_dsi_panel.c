@@ -250,6 +250,21 @@ disp_en_gpio_err:
 	return rc;
 }
 
+/*lcd vendor check*/
+void lcd_vendor_check(void )
+{
+	if(strstr(saved_command_line, "truly") != NULL)
+		{
+	               lcd_vendor = 1;
+	        }else if(strstr(saved_command_line, "sharp") != NULL)
+		{
+         	       lcd_vendor = 2;
+		}
+		else{
+		       printk("lcd vendor detect failed\n");
+		}
+}
+
 int mdss_dsi_panel_reset(struct mdss_panel_data *pdata, int enable)
 {
 	struct mdss_dsi_ctrl_pdata *ctrl_pdata = NULL;
