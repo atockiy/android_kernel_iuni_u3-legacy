@@ -610,6 +610,38 @@ static struct msm_gpiomux_config msm_epm_configs[] __initdata = {
 	},
 };
 
+static struct gpiomux_setting cam_settings[] = {
+	{
+		.func = GPIOMUX_FUNC_1, /*active 1*/ /* 0 */
+		.drv = GPIOMUX_DRV_2MA,
+		.pull = GPIOMUX_PULL_NONE,
+	},
+
+	{
+		.func = GPIOMUX_FUNC_1, /*suspend*/ /* 1 */
+		.drv = GPIOMUX_DRV_2MA,
+		.pull = GPIOMUX_PULL_DOWN,
+	},
+
+	{
+		.func = GPIOMUX_FUNC_1, /*i2c suspend*/ /* 2 */
+		.drv = GPIOMUX_DRV_2MA,
+		.pull = GPIOMUX_PULL_KEEPER,
+	},
+
+	{
+		.func = GPIOMUX_FUNC_GPIO, /*active 0*/ /* 3 */
+		.drv = GPIOMUX_DRV_2MA,
+		.pull = GPIOMUX_PULL_NONE,
+	},
+
+	{
+		.func = GPIOMUX_FUNC_GPIO, /*suspend 0*/ /* 4 */
+		.drv = GPIOMUX_DRV_2MA,
+		.pull = GPIOMUX_PULL_DOWN,
+	},
+};
+
 static struct msm_gpiomux_config msm_blsp_configs[] __initdata = {
 #if defined(CONFIG_KS8851) || defined(CONFIG_KS8851_MODULE)
 	{
@@ -757,38 +789,6 @@ static struct msm_gpiomux_config msm8974_slimbus_config[] __initdata = {
 		.settings = {
 			[GPIOMUX_SUSPENDED] = &slimbus,
 		},
-	},
-};
-
-static struct gpiomux_setting cam_settings[] = {
-	{
-		.func = GPIOMUX_FUNC_1, /*active 1*/ /* 0 */
-		.drv = GPIOMUX_DRV_2MA,
-		.pull = GPIOMUX_PULL_NONE,
-	},
-
-	{
-		.func = GPIOMUX_FUNC_1, /*suspend*/ /* 1 */
-		.drv = GPIOMUX_DRV_2MA,
-		.pull = GPIOMUX_PULL_DOWN,
-	},
-
-	{
-		.func = GPIOMUX_FUNC_1, /*i2c suspend*/ /* 2 */
-		.drv = GPIOMUX_DRV_2MA,
-		.pull = GPIOMUX_PULL_KEEPER,
-	},
-
-	{
-		.func = GPIOMUX_FUNC_GPIO, /*active 0*/ /* 3 */
-		.drv = GPIOMUX_DRV_2MA,
-		.pull = GPIOMUX_PULL_NONE,
-	},
-
-	{
-		.func = GPIOMUX_FUNC_GPIO, /*suspend 0*/ /* 4 */
-		.drv = GPIOMUX_DRV_2MA,
-		.pull = GPIOMUX_PULL_DOWN,
 	},
 };
 
