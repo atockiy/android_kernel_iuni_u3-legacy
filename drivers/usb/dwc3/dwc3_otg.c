@@ -25,7 +25,13 @@
 #include "xhci.h"
 
 #define VBUS_REG_CHECK_DELAY	(msecs_to_jiffies(1000))
+//Gionee liujiang 2013-12-16 modify for non-standard charger begin
+#if defined(CONFIG_GN_Q_BSP_PM_NON_STANDARD_CHARGER_SUPPORT)
+#define MAX_INVALID_CHRGR_RETRY 0
+#else
 #define MAX_INVALID_CHRGR_RETRY 3
+#endif
+//Gionee liujiang 2013-12-16 modify for non-standard charger end
 static int max_chgr_retry_count = MAX_INVALID_CHRGR_RETRY;
 module_param(max_chgr_retry_count, int, S_IRUGO | S_IWUSR);
 MODULE_PARM_DESC(max_chgr_retry_count, "Max invalid charger retry count");
@@ -33,6 +39,14 @@ static void dwc3_otg_reset(struct dwc3_otg *dotg);
 
 static void dwc3_otg_notify_host_mode(struct usb_otg *otg, int host_mode);
 static void dwc3_otg_reset(struct dwc3_otg *dotg);
+
+//Gionee liujiang add for charger debug start
+#if defined(CONFIG_GN_Q_BSP_PM_CHG_DEBUG_SUPPORT) 
+#undef dev_dbg                                                                                                                                                               
+#define dev_dbg(dev, format, arg...)		\
+	dev_printk(KERN_ERR, dev, format, ##arg)
+#endif
+//Gionee liujiang add for charger debug end
 
 /**
  * dwc3_otg_set_host_regs - reset dwc3 otg registers to host operation.
@@ -537,8 +551,16 @@ static int dwc3_otg_set_power(struct usb_phy *phy, unsigned mA)
 		power_supply_type = POWER_SUPPLY_TYPE_USB;
 	else if (dotg->charger->chg_type == DWC3_CDP_CHARGER)
 		power_supply_type = POWER_SUPPLY_TYPE_USB_CDP;
+//Gionee liujiang 2013-12-16 modify for non-standard charger begin
+#if defined(CONFIG_GN_Q_BSP_PM_NON_STANDARD_CHARGER_SUPPORT)
+	else if (dotg->charger->chg_type == DWC3_DCP_CHARGER ||
+			dotg->charger->chg_type == DWC3_PROPRIETARY_CHARGER  ||
+			dotg->charger->chg_type == DWC3_FLOATED_CHARGER)
+#else
 	else if (dotg->charger->chg_type == DWC3_DCP_CHARGER ||
 			dotg->charger->chg_type == DWC3_PROPRIETARY_CHARGER)
+#endif
+//Gionee liujiang 2013-12-16 modify for non-standard charger end
 		power_supply_type = POWER_SUPPLY_TYPE_USB_DCP;
 	else
 		power_supply_type = POWER_SUPPLY_TYPE_BATTERY;
@@ -547,7 +569,12 @@ static int dwc3_otg_set_power(struct usb_phy *phy, unsigned mA)
 
 	if (dotg->charger->chg_type == DWC3_CDP_CHARGER)
 		mA = DWC3_IDEV_CHG_MAX;
-
+//Gionee liujiang 2013-12-16 modify for non-standard charger begin
+#if defined(CONFIG_GN_Q_BSP_PM_NON_STANDARD_CHARGER_SUPPORT)
+	if ((dotg->charger->chg_type == DWC3_FLOATED_CHARGER) && mA == 0)
+        mA = 1000; 
+#endif
+//Gionee liujiang 2013-12-16 modify for non-standard charger end
 	if (dotg->charger->max_power == mA)
 		return 0;
 

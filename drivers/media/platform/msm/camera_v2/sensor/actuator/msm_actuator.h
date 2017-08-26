@@ -18,10 +18,28 @@
 #include <media/v4l2-subdev.h>
 #include <media/msmb_camera.h>
 #include "msm_camera_i2c.h"
+//gionee chenqiang add for imx135 ois feature 20140505 begin
+#include "msm_sensor.h"
+
+#define senosr_info_addr    0x00
+#define af_info_addr        0x20
+#define ois_info_addr      0x30
+
+#define lens_offset         0x04
+
+//gionee chenqiang add for imx135 ois feature 20140505 end
 
 #define DEFINE_MSM_MUTEX(mutexname) \
 	static struct mutex mutexname = __MUTEX_INITIALIZER(mutexname)
-
+//gionee chenqiang add for imx135 ois feature 20140505 begin
+void RegWriteA(uint32_t add , uint16_t data);
+void RamWriteA(uint32_t add , uint16_t data);
+void RamWrite32A(uint32_t add , uint32_t data);
+void RegReadA(uint32_t add , unsigned char   *data);
+void RamReadA(uint32_t add , uint16_t *data);
+void RamRead32A(uint32_t add , unsigned long *data);
+uint8_t read_cmos_sensor_byte_data(uint16_t addr);
+//gionee chenqiang add for imx135 ois feature 20140505 end
 struct msm_actuator_ctrl_t;
 
 struct msm_actuator_func_tbl {
@@ -45,6 +63,10 @@ struct msm_actuator_func_tbl {
 			int16_t);
 	int32_t (*actuator_set_position)(struct msm_actuator_ctrl_t *,
 		struct msm_actuator_set_position_t *);
+//gionee chenqiang add for imx135 ois feature 20140505 begin
+        int32_t  (*gn_sunny_imx135_ois_init)(struct msm_actuator_ctrl_t *);
+         int32_t (*gn_sunny_set_ois_mode)(enum ois_camera_mode);
+//gionee chenqiang add for imx135 ois feature 20140505 end
 };
 
 struct msm_actuator {
@@ -57,6 +79,9 @@ struct msm_actuator_ctrl_t {
 	struct platform_driver *pdriver;
 	struct platform_device *pdev;
 	struct msm_camera_i2c_client i2c_client;
+//gionee chenqiang add for imx135 ois feature 20140505 begin
+	struct msm_camera_i2c_client i2c_otp_client;
+//gionee chenqiang add for imx135 ois feature 20140505 end
 	enum msm_camera_device_type_t act_device_type;
 	struct msm_sd_subdev msm_sd;
 	enum af_camera_name cam_name;
@@ -84,5 +109,35 @@ struct msm_actuator_ctrl_t {
 	enum cci_i2c_master_t cci_master;
 	uint32_t subdev_id;
 };
+//gionee chenqiang add for imx135 ois feature 20140505 end
+struct gn_sunny_imx135_otp_struct
+{
+   uint8_t  lens_id;
 
+   uint16_t daxhlo;  //hall offset 
+   uint16_t dayhlo;
+
+   uint16_t daxhlb;  //hall bias
+   uint16_t dayhlb;
+
+   uint16_t off0z;   //hall A/D offset
+   uint16_t off1z;
+
+   uint16_t sxg_otp;   //loop  gain
+   uint16_t syg_otp;
+
+   uint16_t optical_center_x;  //hall offset 
+   uint16_t optical_center_y;
+
+   uint8_t izah;   //gyro offset
+   uint8_t izal;
+   uint8_t izbh;
+   uint8_t izbl;
+
+   uint8_t osc_value;     //osc value
+
+   uint32_t gxzoom_otp;    //gyro gain
+   uint32_t gyzoom_otp;
+};
+//gionee chenqiang add for imx135 ois feature 20140505 end
 #endif

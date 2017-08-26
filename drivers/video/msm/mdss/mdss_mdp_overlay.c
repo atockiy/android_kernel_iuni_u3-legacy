@@ -60,6 +60,7 @@ static int mdss_mdp_overlay_fb_parse_dt(struct msm_fb_data_type *mfd);
 static int mdss_mdp_overlay_off(struct msm_fb_data_type *mfd);
 static int mdss_mdp_overlay_splash_parse_dt(struct msm_fb_data_type *mfd);
 static void __overlay_kickoff_requeue(struct msm_fb_data_type *mfd);
+static void __vsync_retire_signal(struct msm_fb_data_type *mfd, int val);
 
 static int mdss_mdp_overlay_sd_ctrl(struct msm_fb_data_type *mfd,
 					unsigned int enable)
@@ -229,7 +230,7 @@ int mdss_mdp_overlay_req_check(struct msm_fb_data_type *mfd,
 			}
 		}
 
-		if (req->flags & MDP_DEINTERLACE) {
+		if ((req->flags & MDP_DEINTERLACE) && !req->scale.enable_pxl_ext) {
 			if (req->flags & MDP_SOURCE_ROTATED_90) {
 				if ((req->src_rect.w % 4) != 0) {
 					pr_err("interlaced rect not h/4\n");
@@ -278,7 +279,8 @@ static int __mdp_pipe_tune_perf(struct mdss_mdp_pipe *pipe)
 		 * mdp clock requirement
 		 */
 		if (mdata->has_decimation && (pipe->vert_deci < MAX_DECIMATION)
-			&& !pipe->bwc_mode)
+			&& !pipe->bwc_mode && !pipe->src_fmt->tile &&
+			!pipe->scale.enable_pxl_ext)
 			pipe->vert_deci++;
 		else
 			return -EPERM;
@@ -287,6 +289,80 @@ static int __mdp_pipe_tune_perf(struct mdss_mdp_pipe *pipe)
 	return 0;
 }
 
+static int __mdss_mdp_validate_pxl_extn(struct mdss_mdp_pipe *pipe)
+{
+	int plane;
+
+	for (plane = 0; plane < MAX_PLANES; plane++) {
+		u32 hor_req_pixels, hor_fetch_pixels;
+		u32 hor_ov_fetch, vert_ov_fetch;
+		u32 vert_req_pixels, vert_fetch_pixels;
+		u32 src_w = pipe->src.w >> pipe->horz_deci;
+		u32 src_h = pipe->src.h >> pipe->vert_deci;
+
+		/*
+		 * plane 1 and 2 are for chroma and are same. While configuring
+		 * HW, programming only one of the chroma components is
+		 * sufficient.
+		 */
+		if (plane == 2)
+			continue;
+
+		/*
+		 * For chroma plane, width is half for the following sub sampled
+		 * formats
+		 */
+		if (plane == 1 &&
+		    ((pipe->src_fmt->chroma_sample == MDSS_MDP_CHROMA_420) ||
+		     (pipe->src_fmt->chroma_sample == MDSS_MDP_CHROMA_H2V1)))
+			src_w >>= 1;
+
+		if (plane == 1 &&
+		    ((pipe->src_fmt->chroma_sample == MDSS_MDP_CHROMA_420) ||
+		     (pipe->src_fmt->chroma_sample == MDSS_MDP_CHROMA_H1V2)))
+			src_h >>= 1;
+
+		hor_req_pixels = pipe->scale.roi_w[plane] +
+			pipe->scale.num_ext_pxls_left[plane] +
+			pipe->scale.num_ext_pxls_right[plane];
+
+		hor_fetch_pixels = src_w +
+			pipe->scale.left_ftch[plane] +
+			pipe->scale.left_rpt[plane] +
+			pipe->scale.right_ftch[plane] +
+			pipe->scale.right_rpt[plane];
+
+			hor_ov_fetch = src_w + pipe->scale.left_ftch[plane] +
+			pipe->scale.right_ftch[plane];
+
+		vert_req_pixels = pipe->scale.num_ext_pxls_top[plane] +
+			pipe->scale.num_ext_pxls_btm[plane];
+
+		vert_fetch_pixels = pipe->scale.top_ftch[plane] +
+			pipe->scale.top_rpt[plane] +
+			pipe->scale.btm_ftch[plane] +
+			pipe->scale.btm_rpt[plane];
+
+		vert_ov_fetch = src_h + pipe->scale.top_ftch[plane] +
+		pipe->scale.btm_ftch[plane];
+
+		if ((hor_req_pixels != hor_fetch_pixels) ||
+			(hor_ov_fetch > pipe->img_width) ||
+			(vert_req_pixels != vert_fetch_pixels) ||
+			(vert_ov_fetch > pipe->img_height)) {
+			pr_err("err: h_req:%d h_fetch:%d v_req:%d v_fetch:%d src_img:[%d,%d]\n",
+					hor_req_pixels, hor_fetch_pixels,
+					vert_req_pixels, vert_fetch_pixels,
+					pipe->img_width, pipe->img_height);
+////			pipe->scale.enable_pxl_ext = 0;
+			return -EINVAL;
+		}
+	}
+
+	return 0;
+}
+
+
 static int __mdss_mdp_overlay_setup_scaling(struct mdss_mdp_pipe *pipe)
 {
 	u32 src;
@@ -294,8 +370,11 @@ static int __mdss_mdp_overlay_setup_scaling(struct mdss_mdp_pipe *pipe)
 
 	src = pipe->src.w >> pipe->horz_deci;
 
-	if (pipe->scale.enable_pxl_ext)
-		return 0;
+		if (pipe->scale.enable_pxl_ext) {
+		rc = __mdss_mdp_validate_pxl_extn(pipe);
+		return rc;
+	}
+
 	memset(&pipe->scale, 0, sizeof(struct mdp_scale_data));
 	rc = mdss_mdp_calc_phase_step(src, pipe->dst.w,
 			&pipe->scale.phase_step_x[0]);
@@ -574,6 +653,10 @@ static int mdss_mdp_overlay_pipe_setup(struct msm_fb_data_type *mfd,
 		}
 	}
 
+	/*
+	 * When scaling is enabled src crop and image
+	 * width and height is modified by user
+	 */
 	if ((pipe->flags & MDP_DEINTERLACE) && !pipe->scale.enable_pxl_ext) {
 		if (pipe->flags & MDP_SOURCE_ROTATED_90) {
 			pipe->src.x = DIV_ROUND_UP(pipe->src.x, 2);
@@ -1120,15 +1203,19 @@ int mdss_mdp_overlay_kickoff(struct msm_fb_data_type *mfd,
 	else
 		ret = mdss_mdp_display_commit(mdp5_data->ctl, NULL);
 
+	atomic_set(&mfd->kickoff_pending, 0);
+	wake_up_all(&mfd->kickoff_wait_q);
 	mutex_unlock(&mfd->lock);
 
 	if (IS_ERR_VALUE(ret))
 		goto commit_fail;
 
+  mutex_unlock(&mdp5_data->ov_lock);
 	mdss_mdp_overlay_update_pm(mdp5_data);
 
 	ret = mdss_mdp_display_wait4comp(mdp5_data->ctl);
 
+	mutex_lock(&mdp5_data->ov_lock);
 	if (ret == 0) {
 		mutex_lock(&mfd->lock);
 		if (!mdp5_data->sd_enabled && (sd_in_pipe == 1)) {
@@ -2722,6 +2809,20 @@ static int mdss_mdp_overlay_off(struct msm_fb_data_type *mfd)
 		mdss_mdp_overlay_kickoff(mfd, NULL);
 	}
 
+	/*
+	 * If retire fences are still active wait for a vsync time
+	 * for retire fence to be updated.
+	 * As a last resort signal the timeline if vsync doesn't arrive.
+	 */
+	if (mdp5_data->retire_cnt) {
+		u32 fps = mdss_panel_get_framerate(mfd->panel_info);
+		u32 vsync_time = 1000 / (fps ? : DEFAULT_FRAME_RATE);
+
+		msleep(vsync_time);
+
+		__vsync_retire_signal(mfd, mdp5_data->retire_cnt);
+	}
+
 	rc = mdss_mdp_ctl_stop(mdp5_data->ctl);
 	if (rc == 0) {
 		__mdss_mdp_overlay_free_list_purge(mfd);
@@ -2924,7 +3025,6 @@ static void __vsync_retire_work_handler(struct work_struct *work)
 {
 	struct mdss_overlay_private *mdp5_data =
 		container_of(work, typeof(*mdp5_data), retire_work);
-	struct msm_sync_pt_data *sync_pt_data;
 
 	if (!mdp5_data->ctl || !mdp5_data->ctl->mfd)
 		return;
@@ -2932,12 +3032,18 @@ static void __vsync_retire_work_handler(struct work_struct *work)
 	if (!mdp5_data->ctl->remove_vsync_handler)
 		return;
 
-	sync_pt_data = &mdp5_data->ctl->mfd->mdp_sync_pt_data;
-	mutex_lock(&sync_pt_data->sync_mutex);
-	if (mdp5_data->retire_cnt > 0) {
-		sw_sync_timeline_inc(mdp5_data->vsync_timeline, 1);
+	__vsync_retire_signal(mdp5_data->ctl->mfd, 1);
+}
 
-		mdp5_data->retire_cnt--;
+static void __vsync_retire_signal(struct msm_fb_data_type *mfd, int val)
+{
+	struct mdss_overlay_private *mdp5_data = mfd_to_mdp5_data(mfd);
+
+	mutex_lock(&mfd->mdp_sync_pt_data.sync_mutex);
+	if (mdp5_data->retire_cnt > 0) {
+		sw_sync_timeline_inc(mdp5_data->vsync_timeline, val);
+
+		mdp5_data->retire_cnt -= min(val, mdp5_data->retire_cnt);
 		if (mdp5_data->retire_cnt == 0) {
 			mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_ON, false);
 			mdp5_data->ctl->remove_vsync_handler(mdp5_data->ctl,
@@ -2945,7 +3051,7 @@ static void __vsync_retire_work_handler(struct work_struct *work)
 			mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_OFF, false);
 		}
 	}
-	mutex_unlock(&sync_pt_data->sync_mutex);
+	mutex_unlock(&mfd->mdp_sync_pt_data.sync_mutex);
 }
 
 static struct sync_fence *
@@ -2971,7 +3077,7 @@ __vsync_retire_get_fence(struct msm_sync_pt_data *sync_pt_data)
 		return ERR_PTR(-EPERM);
 	}
 
-	if (mdp5_data->retire_cnt == 0) {
+	if (!mdp5_data->vsync_retire_handler.enabled) {
 		mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_ON, false);
 		rc = ctl->add_vsync_handler(ctl,
 				&mdp5_data->vsync_retire_handler);
@@ -3048,6 +3154,7 @@ int mdss_mdp_overlay_init(struct msm_fb_data_type *mfd)
 	}
 	mfd->mdp.private1 = mdp5_data;
 
+	mfd->wait_for_kickoff = true;
 	rc = mdss_mdp_overlay_fb_parse_dt(mfd);
 	if (rc)
 		return rc;

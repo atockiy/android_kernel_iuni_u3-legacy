@@ -57,7 +57,15 @@
 
 		qcom,pon_1 {
 			qcom,pon-type = <0>;
+//Gionee wudp 2014-05-31 add for PWR warm reset begin
+			qcom,support-reset = <1>;
+//Gionee wudp 2014-05-31 add for PWR warm reset end			
 			qcom,pull-up = <1>;
+//Gionee wudp 2014-05-31 add for PWR warm reset begin
+			qcom,s1-timer = <4480>;
+			qcom,s2-timer = <2000>;
+			qcom,s2-type = <4>;
+//Gionee wudp 2014-05-31 add for PWR warm reset end
 			linux,code = <116>;
 		};
 
@@ -120,8 +128,10 @@
 
 		qcom,r-sense-uohm = <10000>;
 		qcom,v-cutoff-uv = <3400000>;
-		qcom,max-voltage-uv = <4200000>;
-		qcom,r-conn-mohm = <0>;
+//Gionee wudp 2013-09-26 modify for 4.35V battery charger para begin
+			qcom,max-voltage-uv = <4350000>;//<4200000>;
+//Gionee wudp 2013-09-26 modify for 4.35V battery charger para end
+    	qcom,r-conn-mohm = <0>;
 		qcom,shutdown-soc-valid-limit = <100>;
 		qcom,adjust-soc-low-threshold = <15>;
 		qcom,ocv-voltage-high-threshold-uv = <3750000>;
@@ -195,28 +205,49 @@
 		#address-cells = <1>;
 		#size-cells = <1>;
 		status = "disabled";
-
-		qcom,vddmax-mv = <4200>;
-		qcom,vddsafe-mv = <4230>;
-		qcom,vinmin-mv = <4300>;
-		qcom,ibatmax-ma = <1500>;
-		qcom,ibatterm-ma = <100>;
-		qcom,ibatsafe-ma = <1500>;
-		qcom,thermal-mitigation = <1500 700 600 325>;
+//Gionee wudp 2013-08-22 modify for 4.35V battery charger para begin
+			qcom,vddmax-mv = <4360>;//<4200>;
+			qcom,vddsafe-mv = <4380>;//<4230>;
+			qcom,vinmin-mv = <4400>;//<4300>
+//Gionee wudp 2013-08-22 modify for 4.35V battery charger para end
+			qcom,ibatmax-ma = <1500>;
+//Gionee wudp 2013-12-20 modify for ibatterm-ma begin
+			qcom,ibatterm-ma = <110>;//<100>;
+//Gionee wudp 2013-12-20 modify for ibatterm-ma end
+			qcom,ibatsafe-ma = <1500>;
+//Gionee wudp 2013-10-29 modify for thermal-mitigation begin
+			qcom,thermal-mitigation = <1500 1300 1100 1000>;//<1500 700 600 325>;
+//Gionee wudp 2013-10-29 modify for thermal-mitigation end
 		qcom,cool-bat-decidegc = <100>;
-		qcom,cool-bat-mv = <4100>;
-		qcom,ibatmax-warm-ma = <350>;
+//Gionee wudp 2013-11-19 modify for cool chg voltage begin
+			qcom,cool-bat-mv = <4360>;//<4100>;
+//Gionee wudp 2013-11-19 modify for cool chg voltage end
+//Gionee wudp 2013-10-29 modify for chg current when bat warm begin
+			qcom,ibatmax-warm-ma = <1000>;//<350>;
+//Gionee wudp 2013-10-29 modify for chg current when bat warm end
 		qcom,warm-bat-decidegc = <450>;
 		qcom,warm-bat-mv = <4100>;
-		qcom,ibatmax-cool-ma = <350>;
-		qcom,vbatdet-delta-mv = <100>;
-		qcom,resume-soc = <99>;
-		qcom,tchg-mins = <150>;
+//Gionee wudp 2013-11-19 modify for cool chg current begin
+			qcom,ibatmax-cool-ma = <1500>;//<350>;
+//Gionee wudp 2013-11-19 modify for cool chg current end
+//Gionee wudp 2013-12-20 modify for vbatdet-delta-mv begin
+			qcom,vbatdet-delta-mv = <50>;//<100>;
+//Gionee wudp 2013-12-20 modify for vbatdet-delta-mv end
+			qcom,resume-soc = <99>;
+//Gionee wudp 2013-09-27 modify for charge timeout begin
+			qcom,tchg-mins = <480>;//<150>;
+//Gionee wudp 2013-09-27 modify for charger timeout end
 		qcom,chg-vadc = <&pm8941_vadc>;
 		qcom,chg-iadc = <&pm8941_iadc>;
 		qcom,chg-adc_tm = <&pm8941_adc_tm>;
 		qcom,ibat-calibration-enabled;
-
+//Gionee liujiang 2014-07-02 add for ovp check
+		qcom,ovp-monitor-en;
+//Gionee wudp 2013-10-16 add for btc config begin
+			qcom,batt-hot-percentage = <25>;//25 -> 60 deg C, 35 -> 45 deg C 
+			qcom,batt-cold-percentage = <70>;//70 -> 0 deg C, 80 -> -10 deg C
+			qcom,btc-disabled = <1>;
+//Gionee wudp 2013-10-16 add for btc config end
 		qcom,chgr@1000 {
 			status = "disabled";
 			reg = <0x1000 0x100>;
@@ -560,7 +591,7 @@
 		#address-cells = <1>;
 		#size-cells = <1>;
 		qcom,qpnp-rtc-write = <0>;
-		qcom,qpnp-rtc-alarm-pwrup = <0>;
+		qcom,qpnp-rtc-alarm-pwrup = <1>; /* Gionee zhengwei 2014-01-04 modify from 0 to 1 for power POWEROFF_WAKEUP alarm */
 
 		qcom,pm8941_rtc_rw@6000 {
 			reg = <0x6000 0x100>;

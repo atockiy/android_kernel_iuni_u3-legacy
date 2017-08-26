@@ -15,8 +15,9 @@
 #include "msm_camera_io_util.h"
 #include "msm_camera_i2c_mux.h"
 #include "msm_cci.h"
-
 /*#define CONFIG_MSM_CAMERA_DT_DEBUG*/
+
+//#define CONFIG_MSM_CAMERA_DT_DEBUG
 #undef CDBG
 #ifdef CONFIG_MSM_CAMERA_DT_DEBUG
 #define CDBG(fmt, args...) pr_err(fmt, ##args)
@@ -736,18 +737,18 @@ int msm_camera_init_gpio_pin_tbl(struct device_node *of_node,
 	if (of_property_read_bool(of_node, "qcom,gpio-vdig") == true) {
 		rc = of_property_read_u32(of_node, "qcom,gpio-vdig", &val);
 		if (rc < 0) {
-			pr_err("%s:%d read qcom,gpio-reset failed rc %d\n",
+			pr_err("%s:%d read qcom,gpio-vdig failed rc %d\n",
 				__func__, __LINE__, rc);
 			goto ERROR;
 		} else if (val >= gpio_array_size) {
-			pr_err("%s:%d qcom,gpio-reset invalid %d\n",
+			pr_err("%s:%d qcom,gpio-vdig invalid %d\n",
 				__func__, __LINE__, val);
 			goto ERROR;
 		}
 		gconf->gpio_num_info->gpio_num[SENSOR_GPIO_VDIG] =
 			gpio_array[val];
 		gconf->gpio_num_info->valid[SENSOR_GPIO_VDIG] = 1;
-		CDBG("%s qcom,gpio-reset %d\n", __func__,
+		CDBG("%s qcom,gpio-vdig %d\n", __func__,
 			gconf->gpio_num_info->gpio_num[SENSOR_GPIO_VDIG]);
 	}
 
@@ -783,9 +784,29 @@ int msm_camera_init_gpio_pin_tbl(struct device_node *of_node,
 		gconf->gpio_num_info->gpio_num[SENSOR_GPIO_STANDBY] =
 			gpio_array[val];
 		gconf->gpio_num_info->valid[SENSOR_GPIO_STANDBY] = 1;
-		CDBG("%s qcom,gpio-reset %d\n", __func__,
+		CDBG("%s qcom,gpio-standby %d\n", __func__,
 			gconf->gpio_num_info->gpio_num[SENSOR_GPIO_STANDBY]);
 	}
+
+//add by gionee zhaocuiqin for CR01324957 20140721 begin
+	if (of_property_read_bool(of_node, "qcom,gpio-vaf") == true) {
+		rc = of_property_read_u32(of_node, "qcom,gpio-vaf", &val);
+		if (rc < 0) {
+			pr_err("%s:%d read qcom,gpio-vaf failed rc %d\n",
+				__func__, __LINE__, rc);
+			goto ERROR;
+		} else if (val >= gpio_array_size) {
+			pr_err("%s:%d qcom,gpio-vaf invalid %d\n",
+				__func__, __LINE__, val);
+			goto ERROR;
+		}
+		gconf->gpio_num_info->gpio_num[SENSOR_GPIO_VAF] =
+			gpio_array[val];
+		gconf->gpio_num_info->valid[SENSOR_GPIO_VAF] = 1;
+		printk("%s qcom,gpio-vaf %d\n", __func__,
+			gconf->gpio_num_info->gpio_num[SENSOR_GPIO_VAF]);
+	}
+//add by gionee zhaocuiqin for CR01324957 20140721 end
 
 	if (of_property_read_bool(of_node, "qcom,gpio-flash-en") == true) {
 		rc = of_property_read_u32(of_node, "qcom,gpio-flash-en", &val);
@@ -1015,12 +1036,12 @@ int msm_camera_power_up(struct msm_camera_power_ctrl_t *ctrl,
 					SENSOR_GPIO_MAX);
 				goto power_up_failed;
 			}
-			if (!ctrl->gpio_conf->gpio_num_info->valid
+            if (!ctrl->gpio_conf->gpio_num_info->valid
 				[power_setting->seq_val])
 				continue;
-			CDBG("%s:%d gpio set val %d\n", __func__, __LINE__,
+			CDBG("%s:%d gpio set val=%d; val= %ld\n", __func__, __LINE__,
 				ctrl->gpio_conf->gpio_num_info->gpio_num
-				[power_setting->seq_val]);
+				[power_setting->seq_val],power_setting->config_val);
 			gpio_set_value_cansleep(
 				ctrl->gpio_conf->gpio_num_info->gpio_num
 				[power_setting->seq_val],
@@ -1033,6 +1054,9 @@ int msm_camera_power_up(struct msm_camera_power_ctrl_t *ctrl,
 					SENSOR_GPIO_MAX);
 				goto power_up_failed;
 			}
+				CDBG("%saaaaaaa vreg index %d >= max %d\n", __func__,
+					power_setting->seq_val,
+					SENSOR_GPIO_MAX);
 			msm_camera_config_single_vreg(ctrl->dev,
 				&ctrl->cam_vreg[power_setting->seq_val],
 				(struct regulator **)&power_setting->data[0],

@@ -99,7 +99,12 @@
  * Invalid voltage range for the detection
  * of plug type with current source
  */
-#define WCD9XXX_CS_MEAS_INVALD_RANGE_LOW_MV 160
+//Gionee huangzhuolin 20141202 modify for CR01429600 begin
+#ifdef CONFIG_GN_Q_BSP_AUDIO_HEADSET_SUPPORT	
+//#define WCD9XXX_CS_MEAS_INVALD_RANGE_LOW_MV 160
+#define WCD9XXX_CS_MEAS_INVALD_RANGE_LOW_MV 240
+#endif
+//Gionee huangzhuolin 20141202 modify for CR01429600 end
 #define WCD9XXX_CS_MEAS_INVALD_RANGE_HIGH_MV 265
 
 /*
@@ -2969,7 +2974,7 @@ static void wcd9xxx_onoff_ext_mclk(struct wcd9xxx_mbhc *mbhc, bool on)
  */
 static bool wcd9xxx_mbhc_enable_mb_decision(int high_hph_cnt)
 {
-	return (high_hph_cnt > 2) && !(high_hph_cnt & (high_hph_cnt - 1));
+	return (high_hph_cnt > 1) && !(high_hph_cnt & 1);
 }
 
 static void wcd9xxx_correct_swch_plug(struct work_struct *work)
@@ -3523,25 +3528,9 @@ irqreturn_t wcd9xxx_dce_handler(int irq, void *data)
 		goto done;
 	}
 
-	/*
-	 * setup internal micbias if codec uses internal micbias for
-	 * headset detection
-	 */
-	if (mbhc->mbhc_cfg->use_int_rbias) {
-		if (mbhc->mbhc_cb && mbhc->mbhc_cb->setup_int_rbias)
-			mbhc->mbhc_cb->setup_int_rbias(codec, true);
-		else
-			pr_err("%s: internal bias requested but codec did not provide callback\n",
-				__func__);
-	}
-
-
 	/* Measure scaled HW DCE */
 	vddio = (mbhc->mbhc_data.micb_mv != VDDIO_MICBIAS_MV &&
 		 mbhc->mbhc_micbias_switched);
-
-	dce_z = mbhc->mbhc_data.dce_z;
-	sta_z = mbhc->mbhc_data.sta_z;
 
 	/* Measure scaled HW STA */
 	dce[0] = wcd9xxx_read_dce_result(codec);
@@ -3555,12 +3544,8 @@ irqreturn_t wcd9xxx_dce_handler(int irq, void *data)
 		} else {
 			pr_debug("%s: Button is released without resume",
 				 __func__);
-			if (mbhc->update_z) {
-				wcd9xxx_update_z(mbhc);
-				dce_z = mbhc->mbhc_data.dce_z;
-				sta_z = mbhc->mbhc_data.sta_z;
-				mbhc->update_z = true;
-			}
+			wcd9xxx_get_z(mbhc, &dce_z, &sta_z, &mbhc->mbhc_bias_regs,
+				      false);
 			stamv = __wcd9xxx_codec_sta_dce_v(mbhc, 0, sta, sta_z,
 						mbhc->mbhc_data.micb_mv);
 			if (vddio)
@@ -3583,12 +3568,8 @@ irqreturn_t wcd9xxx_dce_handler(int irq, void *data)
 	     meas++)
 		dce[meas] = wcd9xxx_codec_sta_dce(mbhc, 1, false);
 
-	if (mbhc->update_z) {
-		wcd9xxx_update_z(mbhc);
-		dce_z = mbhc->mbhc_data.dce_z;
-		sta_z = mbhc->mbhc_data.sta_z;
-		mbhc->update_z = true;
-	}
+			wcd9xxx_get_z(mbhc, &dce_z, &sta_z, &mbhc->mbhc_bias_regs,
+				      false);
 
 	stamv = __wcd9xxx_codec_sta_dce_v(mbhc, 0, sta, sta_z,
 					  mbhc->mbhc_data.micb_mv);
@@ -4912,6 +4893,46 @@ int wcd9xxx_mbhc_init(struct wcd9xxx_mbhc *mbhc, struct wcd9xxx_resmgr *resmgr,
 				__func__);
 			return ret;
 		}
+
+//Gionee huangzhuolin 20140626 add for U2 Multi-function headset CR01296447 begin
+#ifdef CONFIG_GN_Q_BSP_AUDIO_MBHC_CALIBRATION
+		ret = snd_jack_set_key(mbhc->button_jack.jack,
+				       SND_JACK_BTN_1,
+				       KEY_VOLUMEUP);
+		if (ret) {
+			pr_err("%s: Failed to set code for btn-1\n",
+				__func__);
+			return ret;
+		}
+
+		ret = snd_jack_set_key(mbhc->button_jack.jack,
+				       SND_JACK_BTN_2,
+				       KEY_VOLUMEDOWN);
+		if (ret) {
+			pr_err("%s: Failed to set code for btn-2\n",
+				__func__);
+			return ret;
+		}
+
+		ret = snd_jack_set_key(mbhc->button_jack.jack,
+				       SND_JACK_BTN_3,
+				       KEY_NEXTSONG);
+		if (ret) {
+			pr_err("%s: Failed to set code for btn-3\n",
+				__func__);
+			return ret;
+		}
+
+		ret = snd_jack_set_key(mbhc->button_jack.jack,
+				       SND_JACK_BTN_4,
+				       KEY_PREVIOUSSONG);
+		if (ret) {
+			pr_err("%s: Failed to set code for btn-4\n",
+				__func__);
+			return ret;
+		}
+#endif
+//Gionee huangzhuolin 20140626 add for U2 Multi-function headset CR01296447 end
 
 		INIT_DELAYED_WORK(&mbhc->mbhc_firmware_dwork,
 				  wcd9xxx_mbhc_fw_read);

@@ -47,3 +47,7 @@ obj-$(CONFIG_FB_MSM_MDSS_DSI_CTRL_STATUS) += dsi_status_v2.o
 else
 obj-$(CONFIG_FB_MSM_MDSS_DSI_CTRL_STATUS) += mdss_dsi_status.o
 endif
+
+#Gionee xiangzhong add for tps65132 and lm3630
+obj-y += lm3630.o
+obj-y += tps65132.o

@@ -121,9 +121,16 @@ static int mdss_mdp_cmd_tearcheck_cfg(struct mdss_mdp_mixer *mixer,
 	cfg |= ctx->vclk_line;
 
 	mdss_mdp_pingpong_write(mixer, MDSS_MDP_REG_PP_SYNC_CONFIG_VSYNC, cfg);
+/*Gionee guoshite 20140905 modify 0xfff0 to (ctx->height + 20) for black screen ,but hardly to repeat start */
+#ifdef CONFIG_GN_Q_BSP_LCD_TE_ANALOG_SUPPORT
+	mdss_mdp_pingpong_write(mixer, MDSS_MDP_REG_PP_SYNC_CONFIG_HEIGHT,
+				ctx->height + 20); /* set to verh height */
+#else
 	mdss_mdp_pingpong_write(mixer, MDSS_MDP_REG_PP_SYNC_CONFIG_HEIGHT,
 				0xfff0); /* set to verh height */
-
+#endif
+			  
+/*Gionee guoshite 20140905 modify 0xfff0 to (ctx->height + 20) for black screen ,but hardly to repeat end */				
 	mdss_mdp_pingpong_write(mixer, MDSS_MDP_REG_PP_VSYNC_INIT_VAL,
 						ctx->height);
 
@@ -489,6 +496,26 @@ static int mdss_mdp_cmd_wait4pingpong(struct mdss_mdp_ctl *ctl, void *arg)
 	if (need_wait) {
 		rc = wait_for_completion_timeout(
 				&ctx->pp_comp, KOFF_TIMEOUT);
+
+		if (rc <= 0) {
+			u32 status, mask;
+
+			mask = BIT(MDSS_MDP_IRQ_PING_PONG_COMP + ctx->pp_num);
+			status = mask & readl_relaxed(ctl->mdata->mdp_base +
+					MDSS_MDP_REG_INTR_STATUS);
+			if (status) {
+				WARN(1, "pp done but irq not triggered\n");
+				mdss_mdp_irq_clear(ctl->mdata,
+						MDSS_MDP_IRQ_PING_PONG_COMP,
+						ctx->pp_num);
+				local_irq_save(flags);
+				mdss_mdp_cmd_pingpong_done(ctl);
+				local_irq_restore(flags);
+				rc = 1;
+			}
+
+			rc = try_wait_for_completion(&ctx->pp_comp);
+		}
 
 		if (rc <= 0) {
 			WARN(1, "cmd kickoff timed out (%d) ctl=%d\n",

@@ -27,7 +27,7 @@
 		qcom,pull-down-enable = <1>;
 		interrupts = <0x1 0x83 0x2>;
 		interrupt-names = "ocp";
-		qcom,ocp-enable = <1>;
+		qcom,ocp-enable = <0>;/*chuqf, for usbotg*/
 		qcom,ocp-max-retries = <10>;
 		qcom,ocp-retry-delay = <30>;
 		qcom,soft-start-enable = <1>;
@@ -355,7 +355,7 @@
 	rpm-regulator-ldoa17 {
 		status = "okay";
 		pm8941_l17: regulator-l17 {
-			regulator-min-microvolt = <2850000>;
+			regulator-min-microvolt = <2700000>; //add by chenqiang for camera
 			regulator-max-microvolt = <2850000>;
 			qcom,init-voltage = <2850000>;
 			status = "okay";

@@ -598,6 +598,29 @@ static u32 mdss_mdp_get_vbp_factor_max(struct mdss_mdp_ctl *ctl)
 	return vbp_max;
 }
 
+static bool mdss_mdp_video_mode_intf_connected(struct mdss_mdp_ctl *ctl)
+{
+	int i;
+	struct mdss_data_type *mdata;
+
+	if (!ctl || !ctl->mdata)
+		return 0;
+
+	mdata = ctl->mdata;
+	for (i = 0; i < mdata->nctl; i++) {
+		struct mdss_mdp_ctl *ctl = mdata->ctl_off + i;
+
+		if (ctl->is_video_mode && ctl->power_on) {
+			pr_debug("video interface connected ctl:%d\n",
+			ctl->num);
+			return true;
+		}
+	}
+
+	return false;
+}
+
+
 static void __mdss_mdp_perf_calc_ctl_helper(struct mdss_mdp_ctl *ctl,
 		struct mdss_mdp_perf_params *perf,
 		struct mdss_mdp_pipe **left_plist, int left_cnt,
@@ -693,7 +716,7 @@ static void mdss_mdp_perf_calc_ctl(struct mdss_mdp_ctl *ctl,
 			left_plist, (left_plist ? MDSS_MDP_MAX_STAGE : 0),
 			right_plist, (right_plist ? MDSS_MDP_MAX_STAGE : 0));
 
-	if (ctl->is_video_mode) {
+	if (ctl->is_video_mode || mdss_mdp_video_mode_intf_connected(ctl)) {
 		if (perf->bw_overlap > perf->bw_prefill)
 			perf->bw_ctl = apply_fudge_factor(perf->bw_ctl,
 				&mdss_res->ib_factor_overlap);
@@ -2530,9 +2553,6 @@ int mdss_mdp_display_commit(struct mdss_mdp_ctl *ctl, void *arg)
 	if (!ctl->shared_lock)
 		mdss_mdp_ctl_notify(ctl, MDP_NOTIFY_FRAME_READY);
 
-	if (ctl->wait_pingpong)
-		ctl->wait_pingpong(ctl, NULL);
-
 	ctl->roi_bkup.w = ctl->roi.w;
 	ctl->roi_bkup.h = ctl->roi.h;
 
@@ -2549,6 +2569,14 @@ int mdss_mdp_display_commit(struct mdss_mdp_ctl *ctl, void *arg)
 	ctl->flush_bits = 0;
 
 	mdss_mdp_xlog_mixer_reg(ctl);
+	
+	if (ctl->wait_pingpong) {	
+		ctl->wait_pingpong(ctl, NULL);	
+
+		if (sctl && sctl->wait_pingpong) {	
+			sctl->wait_pingpong(sctl, NULL);	
+		}	
+	}
 
 	if (ctl->display_fnc)
 		ret = ctl->display_fnc(ctl, arg); /* kickoff */

@@ -42,6 +42,26 @@ enum msm_sensor_state_t {
 	MSM_SENSOR_POWER_DOWN,
 	MSM_SENSOR_POWER_UP,
 };
+//Gionee liushengbin modify for ov4688 otp feature start
+struct gn_sunny_ov4688_otp_struct
+{
+    int module_integrator_id;
+    int lens_id;
+    int production_year;
+    int production_month;
+    int production_day;
+    int rg_ratio;
+    int bg_ratio;
+    int light_rg;
+    int light_bg;
+    int user_data[5];
+    int VCM_start;
+    int VCM_end;
+};
+struct gn_otp_sensor_fn_t {
+        int (*gn_sensor_otp_support)(struct msm_sensor_ctrl_t *s_ctrl);
+};
+//Gionee liushengbin modify for ov4688 otp feature end
 
 struct msm_sensor_fn_t {
 	int (*sensor_config) (struct msm_sensor_ctrl_t *, void __user *);
@@ -73,6 +93,8 @@ struct msm_sensor_ctrl_t {
 	uint8_t is_probe_succeed;
 	uint32_t id;
 	struct device_node *of_node;
+    struct gn_otp_sensor_fn_t *gn_otp_func_tbl;//Gionee liushengbin 20131108 modify for ov4688 otp
+	
 };
 
 int msm_sensor_config(struct msm_sensor_ctrl_t *s_ctrl, void __user *argp);

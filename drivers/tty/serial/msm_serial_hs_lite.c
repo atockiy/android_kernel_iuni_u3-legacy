@@ -519,12 +519,22 @@ static void msm_hsl_stop_tx(struct uart_port *port)
 		regmap[msm_hsl_port->ver_id][UARTDM_IMR]);
 }
 
+//taochao add for debug begin
+static int debug_flag = 0;
+//taochao add for debug end
 static void msm_hsl_start_tx(struct uart_port *port)
 {
 	struct msm_hsl_port *msm_hsl_port = UART_TO_MSM(port);
 
 	if (port->suspended) {
-		pr_err("%s: System is in Suspend state\n", __func__);
+//taochao add for debug begin
+		//pr_err("%s: System is in Suspend state\n", __func__);
+		if(debug_flag < 30)
+		{
+			pr_err("%s: System is in Suspend state\n", __func__);
+			debug_flag++;
+		}
+//taochao add for debug end
 		return;
 	}
 	msm_hsl_port->imr |= UARTDM_ISR_TXLEV_BMSK;

@@ -74,7 +74,13 @@ module_param(ss_phy_override_deemphasis, int, S_IRUGO|S_IWUSR);
 MODULE_PARM_DESC(ss_phy_override_deemphasis, "Override SSPHY demphasis value");
 
 /* Enable Proprietary charger detection */
+//Gionee liujiang 2013-12-16 modify for non-standard charger begin
+#if defined(CONFIG_GN_Q_BSP_PM_NON_STANDARD_CHARGER_SUPPORT)
+static bool prop_chg_detect=true;
+#else
 static bool prop_chg_detect;
+#endif
+//Gionee liujiang 2013-12-16 modify for non-standard charger end
 module_param(prop_chg_detect, bool, S_IRUGO | S_IWUSR);
 MODULE_PARM_DESC(prop_chg_detect, "Enable Proprietary charger detection");
 
@@ -227,6 +233,8 @@ struct dwc3_msm {
 	unsigned int		host_mode;
 	unsigned int		voltage_max;
 	unsigned int		current_max;
+//Gionee liujiang 2014-07-02 add for ovp	
+	unsigned int 		health;
 	unsigned int		vdd_no_vol_level;
 	unsigned int		vdd_low_vol_level;
 	unsigned int		vdd_high_vol_level;
@@ -262,6 +270,14 @@ struct dwc3_msm {
 #define USB_SSPHY_1P8_HPM_LOAD		23000	/* uA */
 
 static struct usb_ext_notification *usb_ext;
+
+//Gionee liujiang add for charger debug start
+#if defined(CONFIG_GN_Q_BSP_PM_CHG_DEBUG_SUPPORT) 
+#undef dev_dbg                                                                                                                                                               
+#define dev_dbg(dev, format, arg...)		\
+	dev_printk(KERN_ERR, dev, format, ##arg)
+#endif
+//Gionee liujiang add for charger debug end
 
 /**
  *
@@ -1694,9 +1710,15 @@ static const char *chg_to_string(enum dwc3_chg_type chg_type)
 	default:			return "UNKNOWN_CHARGER";
 	}
 }
-
+//Gionee liujiang 2013-12-16 modify for non-standard charger begin
+#if defined(CONFIG_GN_Q_BSP_PM_NON_STANDARD_CHARGER_SUPPORT)
+#define DWC3_CHG_DCD_POLL_TIME		(300 * HZ/1000) /* 300 msec */
+#define DWC3_CHG_DCD_MAX_RETRIES	2 /* Tdcd_tmout = 2 * 300 msec */
+#else
 #define DWC3_CHG_DCD_POLL_TIME		(100 * HZ/1000) /* 100 msec */
 #define DWC3_CHG_DCD_MAX_RETRIES	6 /* Tdcd_tmout = 6 * 100 msec */
+#endif
+//Gionee liujiang 2013-12-16 modify for non-standard charger end
 #define DWC3_CHG_PRIMARY_DET_TIME	(50 * HZ/1000) /* TVDPSRC_ON */
 #define DWC3_CHG_SECONDARY_DET_TIME	(50 * HZ/1000) /* TVDMSRC_ON */
 
@@ -2308,6 +2330,11 @@ static int dwc3_msm_power_get_property_usb(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_VOLTAGE_NOW:
 		val->intval = get_prop_usbin_voltage_now(mdwc);
 		break;
+//Gionee liujiang 2014-07-02 add for ovp start
+	case POWER_SUPPLY_PROP_HEALTH:
+		val->intval = mdwc->health;
+		break;
+//Gionee liujiang 2014-07-02 add for ovp end
 	default:
 		return -EINVAL;
 	}
@@ -2356,6 +2383,11 @@ static int dwc3_msm_power_set_property_usb(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_TYPE:
 		psy->type = val->intval;
 		break;
+//Gionee liujiang 2014-07-02 add for ovp start
+	case POWER_SUPPLY_PROP_HEALTH:
+		mdwc->health = val->intval;
+		break;
+//Gionee liujiang 2014-07-02 add for ovp end
 	default:
 		return -EINVAL;
 	}
@@ -2417,6 +2449,8 @@ static enum power_supply_property dwc3_msm_pm_power_props_usb[] = {
 	POWER_SUPPLY_PROP_TYPE,
 	POWER_SUPPLY_PROP_SCOPE,
 	POWER_SUPPLY_PROP_VOLTAGE_NOW,
+//Gionee liujiang 2014-07-02 add for ovp check
+	POWER_SUPPLY_PROP_HEALTH,
 };
 
 static void dwc3_init_adc_work(struct work_struct *w);

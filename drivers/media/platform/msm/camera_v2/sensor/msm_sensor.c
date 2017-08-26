@@ -19,15 +19,16 @@
 #include <mach/rpm-regulator.h>
 #include <mach/rpm-regulator-smd.h>
 #include <linux/regulator/consumer.h>
+/*#define MSM_SENSOR_DRIVER_DEBUG*/
 
-/*#define CONFIG_MSMB_CAMERA_DEBUG*/
+//#define CONFIG_MSMB_CAMERA_DEBUG
 #undef CDBG
 #ifdef CONFIG_MSMB_CAMERA_DEBUG
 #define CDBG(fmt, args...) pr_err(fmt, ##args)
 #else
 #define CDBG(fmt, args...) do { } while (0)
 #endif
-
+extern int oispower_flag; //add by gionee zhaocuiqin for ois init
 static int32_t msm_camera_get_power_settimgs_from_sensor_lib(
 	struct msm_camera_power_ctrl_t *power_info,
 	struct msm_sensor_power_setting_array *power_setting_array)
@@ -407,7 +408,9 @@ int msm_sensor_power_down(struct msm_sensor_ctrl_t *s_ctrl)
 			__func__, __LINE__, s_ctrl);
 		return -EINVAL;
 	}
-
+	
+    oispower_flag = 0; //add by gionee zhaocuiqin for ois init
+	
 	power_info = &s_ctrl->sensordata->power_info;
 	sensor_device_type = s_ctrl->sensor_device_type;
 	sensor_i2c_client = s_ctrl->sensor_i2c_client;
@@ -428,6 +431,7 @@ int msm_sensor_power_up(struct msm_sensor_ctrl_t *s_ctrl)
 	struct msm_camera_i2c_client *sensor_i2c_client;
 	struct msm_camera_slave_info *slave_info;
 	const char *sensor_name;
+	uint32_t retry = 0;
 
 	if (!s_ctrl) {
 		pr_err("%s:%d failed: %p\n",
@@ -452,11 +456,27 @@ int msm_sensor_power_up(struct msm_sensor_ctrl_t *s_ctrl)
 		sensor_i2c_client);
 	if (rc < 0)
 		return rc;
+// Gionee <zhaocuiqin> <2014-12-04> modify for CR01415873 begin
+#ifdef ORIGINAL_VERSION
 	rc = msm_sensor_check_id(s_ctrl);
 	if (rc < 0)
 		msm_camera_power_down(power_info, s_ctrl->sensor_device_type,
+		    sensor_i2c_client);
+#else
+    for (retry = 0; retry < 3; retry++) {
+        rc = msm_sensor_check_id(s_ctrl);
+        if (rc < 0) {
+		    if (retry < 2 )
+			    continue;
+			else {
+		        msm_camera_power_down(power_info, s_ctrl->sensor_device_type,
 					sensor_i2c_client);
-
+			}
+        } else
+	        break;
+    }
+#endif
+// Gionee <zhaocuiqin> <2014-12-04> modify for CR01415873 begin
 	return rc;
 }
 
@@ -993,7 +1013,20 @@ int msm_sensor_config(struct msm_sensor_ctrl_t *s_ctrl, void __user *argp)
 			rc = -EFAULT;
 		}
 		break;
-
+    //Gionee liushengbin 20131108 modify for ov4688 otp start
+    case CFG_SET_INIT_SETTING:
+         if(s_ctrl->gn_otp_func_tbl != NULL) {
+                    rc = s_ctrl->gn_otp_func_tbl->gn_sensor_otp_support(s_ctrl);
+                    if (rc != 1) {
+                            pr_err("%s: %s: sensor otp support failed\n", __func__,
+                                    s_ctrl->sensordata->sensor_name);
+                            return rc;
+                    }
+					printk("%s: %s: sensor otp support success\n", __func__,
+                                    s_ctrl->sensordata->sensor_name);
+            }
+            break;
+    //Gionee liushengbin 20131108 modify for ov4688 otp end
 	case CFG_SET_STOP_STREAM_SETTING: {
 		struct msm_camera_i2c_reg_setting *stop_setting =
 			&s_ctrl->stop_setting;
