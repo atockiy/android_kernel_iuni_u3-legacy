@@ -3033,8 +3033,14 @@ static int __devinit android_probe(struct platform_device *pdev)
 		of_property_read_u32(pdev->dev.of_node,
 				"qcom,android-usb-swfi-latency",
 				&pdata->swfi_latency);
+//gionee, chuqf, modified for cd-rom, begin
+#ifdef CONFIG_GN_CDROM_SUPPORT
+		pdata->cdrom = true;
+#else
 		pdata->cdrom = of_property_read_bool(pdev->dev.of_node,
 				"qcom,android-usb-cdrom");
+#endif
+//gionee, chuqf, modified for cd-rom, end
 		pdata->internal_ums = of_property_read_bool(pdev->dev.of_node,
 				"qcom,android-usb-internal-ums");
 		len = of_property_count_strings(pdev->dev.of_node,

@@ -2339,6 +2339,11 @@ static enum power_supply_property msm_batt_power_props[] = {
 	POWER_SUPPLY_PROP_SYSTEM_TEMP_LEVEL,
 	POWER_SUPPLY_PROP_CYCLE_COUNT,
 	POWER_SUPPLY_PROP_VOLTAGE_OCV,
+//Gionee wudp 2013-09-10 add for charger voltage begin
+#if defined(CONFIG_GN_Q_BSP_CHARGE_VOLTAGE_SUPPORT)
+	POWER_SUPPLY_PROP_CHARGE_VOLTAGE_NOW,
+#endif
+//Gionee wudp 2013-09-10 add for charger voltage end
 };
 
 static char *pm_power_supplied_to[] = {
@@ -2403,6 +2408,29 @@ qpnp_aicl_check_work(struct work_struct *work)
 	}
 	chip->charger_monitor_checked = true;
 }
+
+//Gionee wudp 2013-09-10 add for charger voltage begin
+#if defined(CONFIG_GN_Q_BSP_CHARGE_VOLTAGE_SUPPORT)
+static int
+get_prop_battery_charge_voltage_now(struct qpnp_chg_chip *chip)
+{
+	int rc = 0;
+	struct qpnp_vadc_result results;
+
+	if (chip->revision == 0 && chip->type == SMBB) {
+		pr_err("vbat reading not supported for 1.0 rc=%d\n", rc);
+		return 0;
+	} else {
+		rc = qpnp_vadc_read(chip->vadc_dev, USBIN, &results);
+		if (rc) {
+			pr_err("Unable to read charge voltage rc=%d\n", rc);
+			return 0;
+		}
+		return results.physical;
+	}
+}
+#endif
+//Gionee wudp 2013-09-10 add for charger voltage end
 
 static int
 get_prop_battery_voltage_now(struct qpnp_chg_chip *chip)
@@ -2594,6 +2622,11 @@ get_prop_capacity(struct qpnp_chg_chip *chip)
 {
 	union power_supply_propval ret = {0,};
 	int battery_status, bms_status, soc, charger_in;
+//Gionee wudp 2013-12-10 add for optimize soc begin
+#if defined(CONFIG_GN_Q_BSP_OPTIMIZE_SOC_SUPPORT)
+	static int last_soc = 50;
+#endif
+//Gionee wudp 2013-12-10 add for optimize soc end
 
 	if (chip->fake_battery_soc >= 0)
 		return chip->fake_battery_soc;
@@ -2632,6 +2665,24 @@ get_prop_capacity(struct qpnp_chg_chip *chip)
 				&& !qpnp_chg_is_usb_chg_plugged_in(chip))
 				pr_warn_ratelimited("Battery 0, CHG absent\n");
 		}
+
+//Gionee wudp 2013-12-10 add for optimize soc begin
+#if defined(CONFIG_GN_Q_BSP_OPTIMIZE_SOC_SUPPORT)
+		//printk(KERN_INFO "get_prop_capacity1 charger_in=%d last_soc=%d soc=%d battery_status=%d",
+		       //charger_in, last_soc, soc, battery_status);
+		if(charger_in) {
+			if(soc == 100)
+				last_soc = 100;
+
+			if((last_soc == 100) && (soc >= 95))
+				soc = 100;
+		} else {
+			last_soc = 50;
+		}
+		//printk(KERN_INFO "get_prop_capacity2 charger_in=%d last_soc=%d soc=%d battery_status=%d",
+		       //charger_in, last_soc, soc, battery_status);
+#endif
+//Gionee wudp 2013-12-10 add for optimize soc end
 		return soc;
 	} else {
 		pr_debug("No BMS supply registered return 50\n");
@@ -2805,6 +2856,13 @@ qpnp_batt_power_get_property(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_VOLTAGE_NOW:
 		val->intval = get_prop_battery_voltage_now(chip);
 		break;
+//Gionee wudp 2013-09-10 add for charger voltage begin
+#if defined(CONFIG_GN_Q_BSP_CHARGE_VOLTAGE_SUPPORT)
+	case POWER_SUPPLY_PROP_CHARGE_VOLTAGE_NOW:
+		val->intval = get_prop_battery_charge_voltage_now(chip);
+		break;
+#endif
+//Gionee wudp 2013-09-10 add for charger voltage end
 	case POWER_SUPPLY_PROP_VOLTAGE_OCV:
 		val->intval = chip->insertion_ocv_uv;
 		break;
@@ -2891,8 +2949,14 @@ qpnp_chg_bat_if_configure_btc(struct qpnp_chg_chip *chip)
 		mask |= BTC_COLD;
 	}
 
-	if (chip->btc_disabled)
+	if (chip->btc_disabled){
 		mask |= BTC_CONFIG_ENABLED;
+//Gionee wudp 2013-10-16 add for btc config begin
+#if defined(CONFIG_GN_Q_BSP_BTC_CONFIG_SUPPORT)
+		btc_cfg |= BTC_CONFIG_ENABLED;
+#endif
+//Gionee wudp 2013-10-16 add for btc config end
+	}
 
 	return qpnp_chg_masked_write(chip,
 			chip->bat_if_base + BAT_IF_BTC_CTRL,
@@ -3769,8 +3833,15 @@ qpnp_eoc_work(struct work_struct *work)
 		return;
 	}
 
+//Gionee wudp 2014-05-19 modify for chg debug begin
+#if defined(CONFIG_GN_Q_BSP_PM_CHG_DEBUG_SUPPORT) 
+	printk(KERN_INFO "chgr: 0x%x, bat_if: 0x%x, buck: 0x%x\n",
+		chg_sts, batt_sts, buck_sts);
+#else
 	pr_debug("chgr: 0x%x, bat_if: 0x%x, buck: 0x%x\n",
 		chg_sts, batt_sts, buck_sts);
+#endif
+//Gionee wudp 2014-05-19 modify for chg debug begin
 
 	if (!qpnp_chg_is_usb_chg_plugged_in(chip) &&
 			!qpnp_chg_is_dc_chg_plugged_in(chip)) {
@@ -5407,6 +5478,13 @@ qpnp_charger_probe(struct spmi_device *spmi)
 		case SMBCL_USB_CHGPTH_SUBTYPE:
 			chip->usb_chgpth_base = resource->start;
 			rc = qpnp_chg_hwinit(chip, subtype, spmi_resource);
+			
+			//Gionee wudp 2013-10-26 add for PMIC OVP 9.5V begin
+			#if defined(CONFIG_GN_Q_BSP_OVP_9P5V_SUPPORT)
+			qpnp_chg_masked_write(chip, chip->usb_chgpth_base + USB_OVP_CTL, 0x30, 0x0, 1); 
+			#endif
+			//Gionee wudp 2013-10-26 add for PMIC OVP 9.5V end
+			
 			if (rc) {
 				if (rc != -EPROBE_DEFER)
 					pr_err("Failed to init subtype 0x%x rc=%d\n",
@@ -5417,6 +5495,13 @@ qpnp_charger_probe(struct spmi_device *spmi)
 		case SMBB_DC_CHGPTH_SUBTYPE:
 			chip->dc_chgpth_base = resource->start;
 			rc = qpnp_chg_hwinit(chip, subtype, spmi_resource);
+
+			//Gionee wudp 2013-10-26 add for PMIC OVP 9.5V begin
+			#if defined(CONFIG_GN_Q_BSP_OVP_9P5V_SUPPORT)
+			qpnp_chg_masked_write(chip, chip->dc_chgpth_base + USB_OVP_CTL, 0x30, 0x0, 1); 
+			#endif
+			//Gionee wudp 2013-10-26 add for PMIC OVP 9.5V end
+		
 			if (rc) {
 				pr_err("Failed to init subtype 0x%x rc=%d\n",
 						subtype, rc);
@@ -5642,12 +5727,17 @@ static int qpnp_chg_resume(struct device *dev)
 	int rc = 0;
 
 	if (chip->bat_if_base) {
+//Gionee yezg 2014-3-13 modify for pmic tm_low_interrupt begin
+#if defined(CONFIG_GN_Q_BSP_PMIC_DISABLE_LOW_TM_INTERRUPTS_SUPPORT)
+#else
 		rc = qpnp_chg_masked_write(chip,
 			chip->bat_if_base + BAT_IF_VREF_BAT_THM_CTRL,
 			VREF_BATT_THERM_FORCE_ON,
 			VREF_BATT_THERM_FORCE_ON, 1);
 		if (rc)
 			pr_debug("failed to force on VREF_BAT_THM rc=%d\n", rc);
+#endif
+//Gionee yezg 2014-3-13 modify for pmic tm_low_interrupt end
 	}
 
 	return rc;
@@ -5659,12 +5749,22 @@ static int qpnp_chg_suspend(struct device *dev)
 	int rc = 0;
 
 	if (chip->bat_if_base) {
+//Gionee yezg 2014-3-13 modify for pmic tm_low_interrupt begin
+#if defined(CONFIG_GN_Q_BSP_PMIC_DISABLE_LOW_TM_INTERRUPTS_SUPPORT)
+#else
 		rc = qpnp_chg_masked_write(chip,
 			chip->bat_if_base + BAT_IF_VREF_BAT_THM_CTRL,
 			VREF_BATT_THERM_FORCE_ON,
 			VREF_BAT_THM_ENABLED_FSM, 1);
 		if (rc)
 			pr_debug("failed to set FSM VREF_BAT_THM rc=%d\n", rc);
+#endif
+//Gionee yezg 2014-3-13 modify for pmic tm_low_interrupt end
+		//Gionee wudp 2013-10-10 add for solve wall-charger chg-gone begin
+		#if defined(CONFIG_GN_Q_BSP_PM8941_CHARGER_SUPPORT)
+		qpnp_chg_masked_write(chip, 0x12df, 0xFF, 0x00, 1);
+		#endif
+		//Gionee wudp 2013-10-10 add for solve wall-charger chg-gone end
 	}
 
 	return rc;

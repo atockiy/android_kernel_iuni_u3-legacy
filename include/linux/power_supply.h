@@ -140,6 +140,11 @@ enum power_supply_property {
 	POWER_SUPPLY_PROP_SCOPE,
 	POWER_SUPPLY_PROP_SYSTEM_TEMP_LEVEL,
 	POWER_SUPPLY_PROP_RESISTANCE,
+//Gionee wudp 2013-09-10 add for charger voltage begin
+#if defined(CONFIG_GN_Q_BSP_CHARGE_VOLTAGE_SUPPORT)
+	POWER_SUPPLY_PROP_CHARGE_VOLTAGE_NOW,
+#endif
+//Gionee wudp 2013-09-10 add for charger voltage end
 	/* Properties of type `const char *' */
 	POWER_SUPPLY_PROP_MODEL_NAME,
 	POWER_SUPPLY_PROP_MANUFACTURER,

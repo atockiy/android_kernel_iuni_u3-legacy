@@ -57,8 +57,12 @@ static ssize_t led_brightness_store(struct device *dev,
 	if (count == size) {
 		ret = count;
 
-		if (state == LED_OFF)
-			led_trigger_remove(led_cdev);
+        //Gionee wanglei, 2013-11-13, add for LED Torch, start
+        if (strcmp(led_cdev->name, "led:flash_torch")) {
+		    if (state == LED_OFF) 
+		        led_trigger_remove(led_cdev);
+		}
+        //Gionee wanglei, 2013-11-13, add for LED Torch, end
 		led_set_brightness(led_cdev, state);
 	}
 

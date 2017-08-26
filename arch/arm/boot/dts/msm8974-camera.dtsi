@@ -205,7 +205,20 @@
 };
 
 &master0 {
-	qcom,hw-thigh = <78>;
+	qcom,hw-thigh = <20>; //add by chenqiang for 400k iic clock 20130909
+	qcom,hw-tlow = <28>; 
+	qcom,hw-tsu-sto = <24>; 
+	qcom,hw-tsu-sta = <24>; 
+	qcom,hw-thd-dat = <13>; 
+	qcom,hw-thd-sta = <15>; 
+	qcom,hw-tbuf = <25>; 
+	qcom,hw-scl-stretch-en = <0>; 
+	qcom,hw-trdhld = <6>; 
+	qcom,hw-tsp = <3>; 
+	status = "ok";
+	
+	/*     
+	qcom,hw-thigh = <78>;   //add by chenqiang for 100k iic click 20130909
 	qcom,hw-tlow = <114>;
 	qcom,hw-tsu-sto = <28>;
 	qcom,hw-tsu-sta = <28>;
@@ -216,10 +229,24 @@
 	qcom,hw-trdhld = <6>;
 	qcom,hw-tsp = <1>;
 	status = "ok";
+	*/
 };
 
 &master1 {
-	qcom,hw-thigh = <78>;
+	qcom,hw-thigh = <20>; //add by chenqiang for 400k iic clock 20130909
+	qcom,hw-tlow = <28>; 
+	qcom,hw-tsu-sto = <6>; 
+	qcom,hw-tsu-sta = <7>; 
+	qcom,hw-thd-dat = <13>; 
+	qcom,hw-thd-sta = <11>; 
+	qcom,hw-tbuf = <25>; 
+	qcom,hw-scl-stretch-en = <0>; 
+	qcom,hw-trdhld = <6>; 
+	qcom,hw-tsp = <3>; 
+	status = "ok";
+	
+	/*     
+	qcom,hw-thigh = <78>;   //add by chenqiang for 100k iic click 20130909
 	qcom,hw-tlow = <114>;
 	qcom,hw-tsu-sto = <28>;
 	qcom,hw-tsu-sta = <28>;
@@ -230,4 +257,5 @@
 	qcom,hw-trdhld = <6>;
 	qcom,hw-tsp = <1>;
 	status = "ok";
+	*/
 };

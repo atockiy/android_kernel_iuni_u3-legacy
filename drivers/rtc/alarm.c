@@ -77,6 +77,11 @@ static int set_alarm_time_to_rtc(const long);
 void set_power_on_alarm(long secs, bool enable)
 {
 	mutex_lock(&power_on_alarm_mutex);
+//gionee, chuqf, begin
+#ifdef GIONEE_ANDROID_ALARM_DEBUG
+    printk(KERN_ERR "chuqf set_power_on_alarm secs: %ld, enable: %d\n", secs, enable);
+#endif
+//gionee, chuqf, end	
 	if (enable) {
 		power_on_alarm = secs;
 	} else {
@@ -659,6 +664,60 @@ static int __init alarm_late_init(void)
 	return 0;
 }
 
+/*Gionee zhengwei 2014-01-06 add for rtc alarm begin */
+#if defined(CONFIG_GN_Q_BSP_KERNEL_RTC_ALARM_SUPPORT)	
+static ssize_t rtc_time_show(struct device *dev, struct device_attribute *attr, char *buf)
+{
+	ssize_t ret = 0;
+	struct rtc_time rtc_time;
+	struct rtc_wkalrm alarm;
+	//	unsigned long flags;
+	long rtc_secs, alarm_secs;
+
+	//spin_lock_irqsave(&alarm_slock, flags);
+
+	rtc_read_time(alarm_rtc_dev, &rtc_time);
+	rtc_tm_to_time(&rtc_time, &rtc_secs);
+
+	rtc_read_alarm(alarm_rtc_dev, &alarm);
+	rtc_tm_to_time(&alarm.time, &alarm_secs);
+
+	//spin_unlock_irqrestore(&alarm_slock, flags);
+
+	sprintf(buf, "0x%lx,0x%lx\n", alarm_secs, rtc_secs);
+	ret = strlen(buf) + 1;
+	return ret;
+}
+
+static DEVICE_ATTR(alarmtimeinpmic, 0440, rtc_time_show, NULL);
+
+static struct kobject *android_alarm_kobj;
+static int alarm_sysfs_add(void)
+{
+	int ret;
+	android_alarm_kobj = kobject_create_and_add("android_alarm", NULL);
+
+	if (android_alarm_kobj == NULL) {
+		printk(KERN_ERR "Alarm register failed\n");
+		ret = -ENOMEM;
+		goto err;
+	}
+
+	ret = sysfs_create_file(android_alarm_kobj, &dev_attr_alarmtimeinpmic.attr);
+	if (ret) {
+		printk(KERN_ERR "Alarm alarmtimeinpmic sysfs create file failed\n");
+		goto err4;
+	}
+
+	return 0;
+err4:
+	kobject_del(android_alarm_kobj);
+err:
+	return ret;
+}
+#endif
+/*Gionee zhengwei 2014-01-06 add for rtc alarm end */
+
 static int __init alarm_driver_init(void)
 {
 	int err;
@@ -680,6 +739,12 @@ static int __init alarm_driver_init(void)
 	err = class_interface_register(&rtc_alarm_interface);
 	if (err < 0)
 		goto err2;
+	
+/*Gionee zhengwei 2014-01-06 add for rtc alarm begin */
+#if defined(CONFIG_GN_Q_BSP_KERNEL_RTC_ALARM_SUPPORT)			
+	alarm_sysfs_add();
+#endif
+/*Gionee zhengwei 2014-01-06 add for rtc alarm end */ 
 
 	return 0;
 

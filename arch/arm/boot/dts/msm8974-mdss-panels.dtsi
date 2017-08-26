@@ -19,3 +19,17 @@
 /include/ "dsi-panel-jdi-dualmipi1-video.dtsi"
 /include/ "dsi-panel-jdi-dualmipi0-cmd.dtsi"
 /include/ "dsi-panel-jdi-dualmipi1-cmd.dtsi"
+
+/*Gionee xiangzhong 2014-04-12 add for sharp 2k cmd lcd begin*/
+/include/ "dsi-panel-sharp-r63419-dualmipi0-cmd.dtsi"
+/include/ "dsi-panel-sharp-r63419-dualmipi1-cmd.dtsi"
+/include/ "dsi-panel-sharp-r63419-dualmipi0-video.dtsi"
+/include/ "dsi-panel-sharp-r63419-dualmipi1-video.dtsi"
+/*Gionee xiangzhong 2014-04-12 add for sharp 2k cmd lcd end*/
+
+/*Gionee xiangzhong 2014-05-30 add for truly 2k cmd lcd begin*/
+/include/ "dsi-panel-truly-r63419-dualmipi0-cmd.dtsi"
+/include/ "dsi-panel-truly-r63419-dualmipi1-cmd.dtsi"
+/include/ "dsi-panel-truly-r63419-dualmipi0-video.dtsi"
+/include/ "dsi-panel-truly-r63419-dualmipi1-video.dtsi"
+/*Gionee xiangzhong 2014-05-30 add for truly 2k cmd lcd end*/

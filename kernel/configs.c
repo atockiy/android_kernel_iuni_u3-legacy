@@ -52,6 +52,8 @@
 #define kernel_config_data_size \
 	(sizeof(kernel_config_data) - 1 - MAGIC_SIZE * 2)
 
+//Gionee taochao 2014-3-4, add for cts test begin
+#if !defined(CONFIG_GN_Q_BSP_NO_DOWNLOAD_MODE)
 #ifdef CONFIG_IKCONFIG_PROC
 
 static ssize_t
@@ -93,6 +95,8 @@ module_init(ikconfig_init);
 module_exit(ikconfig_cleanup);
 
 #endif /* CONFIG_IKCONFIG_PROC */
+#endif
+//Gionee taochao 2014-3-4, add for cts test end
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Randy Dunlap");

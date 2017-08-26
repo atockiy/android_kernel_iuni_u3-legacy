@@ -1109,7 +1109,13 @@ static int read_soc_params_raw(struct qpnp_bms_chip *chip,
 		pr_debug("PON_OCV_UV = %d, cc = %llx\n",
 				chip->last_ocv_uv, raw->cc);
 		warm_reset = qpnp_pon_is_warm_reset();
+//Gionee wudp 2014-08-18 modify for optimize phone restart soc error begin
+#if defined(CONFIG_GN_Q_BSP_BMS_OPTIMIZE_PHONE_RESTART_SOC_SUPPORT)
+		if (raw->last_good_ocv_uv < MIN_OCV_UV) {
+#else
 		if (raw->last_good_ocv_uv < MIN_OCV_UV || warm_reset > 0) {
+#endif
+//Gionee wudp 2014-08-18 modify for optimize phone restart soc error end
 			pr_debug("OCV is stale or bad, estimating new OCV.\n");
 			chip->last_ocv_uv = estimate_ocv(chip, batt_temp);
 			raw->last_good_ocv_uv = chip->last_ocv_uv;
@@ -1931,7 +1937,13 @@ static int report_cc_based_soc(struct qpnp_bms_chip *chip)
 			soc, time_since_last_change_sec);
 	chip->last_soc = bound_soc(soc);
 	backup_soc_and_iavg(chip, batt_temp, chip->last_soc);
+//Gionee wudp 2013-12-05 add for bms debug log begin
+#if defined(CONFIG_GN_Q_BSP_PM_BMS_LOG_SUPPORT) 
+	printk(KERN_INFO "Reported SOC = %d\n", chip->last_soc);
+#else
 	pr_debug("Reported SOC = %d\n", chip->last_soc);
+#endif
+//Gionee wudp 2013-12-05 add for bms debug log end	
 	chip->t_soc_queried = now;
 	mutex_unlock(&chip->last_soc_mutex);
 
@@ -2231,10 +2243,19 @@ skip_limits:
 	soc = soc_new;
 
 out:
+//Gionee wudp 2013-12-05 add for bms debug log begin
+#if defined(CONFIG_GN_Q_BSP_PM_BMS_LOG_SUPPORT) 
+	printk(KERN_INFO "ibat_ua = %d, vbat_uv = %d, ocv_est_uv = %d, pc_est = %d, soc_est = %d, n = %d, delta_ocv_uv = %d, last_ocv_uv = %d, pc_new = %d, soc_new = %d, rbatt = %d, slope = %d\n",
+		ibat_ua, vbat_uv, ocv_est_uv, pc_est,
+		soc_est, n, delta_ocv_uv, chip->last_ocv_uv,
+		pc_new, soc_new, params->rbatt_mohm, slope);
+#else
 	pr_debug("ibat_ua = %d, vbat_uv = %d, ocv_est_uv = %d, pc_est = %d, soc_est = %d, n = %d, delta_ocv_uv = %d, last_ocv_uv = %d, pc_new = %d, soc_new = %d, rbatt = %d, slope = %d\n",
 		ibat_ua, vbat_uv, ocv_est_uv, pc_est,
 		soc_est, n, delta_ocv_uv, chip->last_ocv_uv,
 		pc_new, soc_new, params->rbatt_mohm, slope);
+#endif
+//Gionee wudp 2013-12-05 add for bms debug log end
 
 	return soc;
 }
@@ -2448,6 +2469,16 @@ static int calculate_state_of_charge(struct qpnp_bms_chip *chip,
 		 */
 		pr_debug("soc = %d before forcing shutdown_soc = %d\n",
 							soc, shutdown_soc);
+
+//Gionee wudp 2014-05-04 add for optimize bms soc begin
+#if defined(CONFIG_GN_Q_BSP_BMS_OPTIMIZE_SOC_SUPPORT) 
+		if(abs(soc - shutdown_soc) > 8){
+			printk(KERN_INFO "first_time_calc_soc soc = %d, shutdown_soc = %d", soc, shutdown_soc);
+			shutdown_soc = soc;
+		}
+#endif
+//Gionee wudp 2013-12-14 add for optimize bms soc end
+
 		chip->last_ocv_uv = find_ocv_for_pc(chip, batt_temp,
 				find_pc_for_soc(chip, &params, shutdown_soc));
 		params.ocv_charge_uah = find_ocv_charge_for_soc(chip,

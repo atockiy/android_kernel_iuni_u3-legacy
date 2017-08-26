@@ -156,6 +156,12 @@ from_old_alarm_set:
 			goto err1;
 		spin_lock_irqsave(&alarm_slock, flags);
 		rv = alarm_pending;
+//gionee, chuqf, begin
+#ifdef GIONEE_ANDROID_ALARM_DEBUG
+        if (alarm_pending & ANDROID_ALARM_RTC_POWEROFF_WAKEUP_MASK)
+            printk(KERN_ERR "chuqf poweroff alarm, alarm_pending is 0x%x\n", alarm_pending);
+#endif
+//gionee, chuqf, end		
 		wait_pending = 1;
 		alarm_pending = 0;
 		spin_unlock_irqrestore(&alarm_slock, flags);

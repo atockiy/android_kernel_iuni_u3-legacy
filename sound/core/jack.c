@@ -24,6 +24,17 @@
 #include <linux/module.h>
 #include <sound/jack.h>
 #include <sound/core.h>
+#include <linux/timer.h>
+#include <linux/delay.h>
+#include <linux/init.h>
+#include <linux/pm.h>
+#include <linux/completion.h>
+#include <linux/regulator/consumer.h>
+#include <linux/err.h>
+#include <linux/workqueue.h>
+#include <linux/sched.h> 
+#include <linux/interrupt.h>  
+
 
 static int jack_switch_types[] = {
 	SW_HEADPHONE_INSERT,
@@ -37,6 +48,118 @@ static int jack_switch_types[] = {
 	SW_UNSUPPORT_INSERT,
 	SW_MICROPHONE2_INSERT,
 };
+
+//Gionee huangzhuolin 20140626 add for U2 Multi-function headset CR01296447 begin
+#ifdef CONFIG_GN_Q_BSP_AUDIO_MBHC_CALIBRATION
+
+#define HOOK_KEYCODE_DELAY 500			//ms
+#define HOOK_LONG_PRESS_DELAY 500		//ms
+static struct delayed_work report_keycode_work;
+static struct delayed_work report_hook_long_press_work;
+static volatile int hook_press_counter;
+static int hook_flag;
+static int hook_long_press;
+static int hook_value;
+static struct snd_jack *jack_hook;
+
+static void report_multi_keycode_handle (struct work_struct *work);
+static void report_hook_long_press_handle (struct work_struct *work);
+static void handle_jack_hookkey_press(void);
+static void handle_jack_hookkey_long_press(void);
+static void snd_jack_report_event(struct snd_jack *jack, int status);
+
+static void report_multi_keycode_handle(struct work_struct *work)
+{	
+	if (hook_press_counter == 1) {
+		hook_value = SND_JACK_BTN_0;
+		printk("%s:::::::KEY_MEDIA\n", __func__);
+	} else if (hook_press_counter == 2) {
+		hook_value = SND_JACK_BTN_3;
+		printk("%s::::::KEY_NEXTSONG\n", __func__);
+	} else if (hook_press_counter > 2){
+		hook_value = SND_JACK_BTN_4;
+		printk("%s::::::hook_press_counter=%d:::::::KEY_PREVIOUSSONG\n", __func__, hook_press_counter);
+	}
+
+	snd_jack_report_event(jack_hook, hook_value);
+	
+	mdelay(50);
+
+	snd_jack_report_event(jack_hook, 0);
+
+	hook_press_counter = 0;
+}
+
+static void report_hook_long_press_handle (struct work_struct *work)
+{
+	hook_long_press = 1;
+	
+	if (delayed_work_pending(&report_keycode_work)) {
+		cancel_delayed_work_sync(&report_keycode_work);
+	}
+
+	snd_jack_report_event(jack_hook, SND_JACK_BTN_0);
+
+	hook_press_counter = 0;
+}
+
+static void handle_jack_hookkey_press(void)
+{
+
+	if (delayed_work_pending(&report_hook_long_press_work)) {
+		cancel_delayed_work_sync(&report_hook_long_press_work);
+		hook_long_press = 0;
+	}
+	
+	if (hook_press_counter == 0) {
+		hook_press_counter ++;
+        schedule_delayed_work(&report_keycode_work,
+                msecs_to_jiffies(HOOK_KEYCODE_DELAY));
+	} else if (hook_press_counter > 0) {
+		if (delayed_work_pending(&report_keycode_work)) {
+			cancel_delayed_work_sync(&report_keycode_work);
+			hook_press_counter ++;
+	        schedule_delayed_work(&report_keycode_work,
+	                msecs_to_jiffies(HOOK_KEYCODE_DELAY));
+		}
+	}
+}
+
+static void handle_jack_hookkey_long_press(void)
+{
+    schedule_delayed_work(&report_hook_long_press_work,
+            msecs_to_jiffies(HOOK_LONG_PRESS_DELAY));
+}
+
+static void snd_jack_report_event(struct snd_jack *jack, int status)
+{
+	int i;
+
+	if(!jack) {
+		printk("Error::jack is a NULL pointer!!!");
+		return;
+	}
+
+	for (i = 0; i < ARRAY_SIZE(jack->key); i++) {
+		int testbit = SND_JACK_BTN_0 >> i;
+		if (jack->type & testbit) {
+			input_report_key(jack->input_dev, jack->key[i],
+					 status & testbit);
+		}
+	}
+
+	for (i = 0; i < ARRAY_SIZE(jack_switch_types); i++) {
+		int testbit = 1 << i;
+		if (jack->type & testbit)
+			input_report_switch(jack->input_dev,
+					    jack_switch_types[i],
+					    status & testbit);
+	}
+
+	input_sync(jack->input_dev);
+}
+#endif
+//Gionee huangzhuolin 20140626 add for U2 Multi-function headset CR01296447 end
 
 static int snd_jack_dev_free(struct snd_device *device)
 {
@@ -143,6 +266,13 @@ int snd_jack_new(struct snd_card *card, const char *id, int type,
 
 	*jjack = jack;
 
+//Gionee huangzhuolin 20140626 add for U2 Multi-function headset CR01296447 begin
+#ifdef CONFIG_GN_Q_BSP_AUDIO_MBHC_CALIBRATION
+	INIT_DELAYED_WORK(&report_keycode_work, report_multi_keycode_handle);
+	INIT_DELAYED_WORK(&report_hook_long_press_work, report_hook_long_press_handle);
+#endif
+//Gionee huangzhuolin 20140626 add for U2 Multi-function headset CR01296447 end
+
 	return 0;
 
 fail_input:
@@ -216,6 +346,29 @@ EXPORT_SYMBOL(snd_jack_set_key);
  */
 void snd_jack_report(struct snd_jack *jack, int status)
 {
+//Gionee huangzhuolin 20140626 add for U2 Multi-function headset CR01296447 begin
+#ifdef CONFIG_GN_Q_BSP_AUDIO_MBHC_CALIBRATION
+	if (!jack)
+		return;
+
+	if (status == SND_JACK_BTN_0 && hook_flag == 0) {
+		jack_hook = jack;
+		hook_flag = 1;
+		handle_jack_hookkey_long_press();
+		return;
+	} else if (status == 0 && hook_flag == 1){
+		jack_hook = jack;
+		hook_flag = 0;
+		if (hook_long_press == 0) {
+			handle_jack_hookkey_press();
+			return;
+		} else {
+			hook_long_press = 0;
+		}
+	}
+
+	snd_jack_report_event(jack, status);
+#else
 	int i;
 
 	if (!jack)
@@ -223,10 +376,10 @@ void snd_jack_report(struct snd_jack *jack, int status)
 
 	for (i = 0; i < ARRAY_SIZE(jack->key); i++) {
 		int testbit = SND_JACK_BTN_0 >> i;
-
-		if (jack->type & testbit)
+		if (jack->type & testbit) {
 			input_report_key(jack->input_dev, jack->key[i],
 					 status & testbit);
+		}
 	}
 
 	for (i = 0; i < ARRAY_SIZE(jack_switch_types); i++) {
@@ -238,6 +391,9 @@ void snd_jack_report(struct snd_jack *jack, int status)
 	}
 
 	input_sync(jack->input_dev);
+#endif
+//Gionee huangzhuolin 20140626 add for U2 Multi-function headset CR01296447 end
+
 }
 EXPORT_SYMBOL(snd_jack_report);
 
