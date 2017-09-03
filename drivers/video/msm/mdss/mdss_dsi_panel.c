@@ -348,15 +348,7 @@ int mdss_dsi_panel_reset(struct mdss_panel_data *pdata, int enable)
 			mdelay(2);
 		}
 #endif
-			if (gpio_is_valid(ctrl_pdata->disp_en_gpio))
-				gpio_set_value((ctrl_pdata->disp_en_gpio), 1);
 
-			for (i = 0; i < pdata->panel_info.rst_seq_len; ++i) {
-				gpio_set_value((ctrl_pdata->rst_gpio),
-					pdata->panel_info.rst_seq[i]);
-				if (pdata->panel_info.rst_seq[++i])
-					usleep(pinfo->rst_seq[i] * 1000);
-			}
 /*Gionee xiangzhong 2013-12-16 add for reset timing begin*/
 #ifdef CONFIG_GN_Q_BSP_LCD_RESET_SUPPORT
 		gpio_set_value((ctrl_pdata->rst_gpio), 1);
