@@ -35,8 +35,7 @@
 		qcom,mdss-ab-factor = <2 1>;		/* 2 times    */
 		qcom,mdss-ib-factor = <6 5>;		/* 1.2 times  */
 		qcom,mdss-clk-factor = <5 4>;		/* 1.25 times */
-		/*Gionee xiangzhong 2014-07-22 add for 4k video*/
-		qcom,mdss-ib-factor-overlap = <7 4>;    /* 1.75 times  */
+		qcom,mdss-ib-factor-overlap = <7 4>;	/* 1.75 times  */
 
 		qcom,max-clk-rate = <320000000>;
 		qcom,mdss-pipe-vig-off = <0x00001200 0x00001600
@@ -103,11 +102,8 @@
 
 		mdss_fb0: qcom,mdss_fb_primary {
 			cell-index = <0>;
+			qcom,mdss-fb-split = <720 720>;
 			compatible = "qcom,mdss-fb";
-			qcom,memory-reservation-type = "EBI1";
-//Gionee xiangzhong modify for 2k(2560x1440x4x2) cmd panel begin
-			qcom,memory-reservation-size = <0x2000000>;
-//Gionee xiangzhong modify for 2k cmd panel begin
 			qcom,memblock-reserve = <0x03200000 0x01E00000>;
 		};
 
@@ -218,11 +214,7 @@
 		reg = 	<0xfd922e00 0x1f8>,
 			<0xfd923100 0x2b0>,
 			<0xfdf30000 0x108>;
-		reg-names = "dsi_ctrl", "dsi_phy", "mmss_misc_phys";
 		gdsc-supply = <&gdsc_mdss>;
-		vdda-supply = <&pm8941_l2>;
-		vdd-supply = <&pm8941_l22>;
-		vddio-supply = <&pm8941_l12>;
 		qcom,mdss-fb-map = <&mdss_fb0>;
 		qcom,mdss-mdp = <&mdss_mdp>;
 		qcom,platform-strength-ctrl = [ff 06];
@@ -252,45 +244,6 @@
 				qcom,supply-post-on-sleep = <0>;
 				qcom,supply-pre-off-sleep = <0>;
 				qcom,supply-post-off-sleep = <0>;
-			};
-		};
-
-		qcom,ctrl-supply-entries {
-			#address-cells = <1>;
-			#size-cells = <0>;
-
-			qcom,ctrl-supply-entry@0 {
-				reg = <0>;
-				qcom,supply-name = "vdda";
-				qcom,supply-min-voltage = <1200000>;
-				qcom,supply-max-voltage = <1200000>;
-				qcom,supply-enable-load = <100000>;
-				qcom,supply-disable-load = <100>;
-			};
-		};
-
-		qcom,panel-supply-entries {
-			#address-cells = <1>;
-			#size-cells = <0>;
-
-			qcom,panel-supply-entry@0 {
-				reg = <0>;
-				qcom,supply-name = "vdd";
-				qcom,supply-min-voltage = <3000000>;
-				qcom,supply-max-voltage = <3000000>;
-				qcom,supply-enable-load = <100000>;
-				qcom,supply-disable-load = <100>;
-				qcom,supply-post-on-sleep = <5>;
-			};
-
-			qcom,panel-supply-entry@1 {
-				reg = <1>;
-				qcom,supply-name = "vddio";
-				qcom,supply-min-voltage = <1800000>;
-				qcom,supply-max-voltage = <1800000>;
-				qcom,supply-enable-load = <100000>;
-				qcom,supply-disable-load = <100>;
-				qcom,supply-post-on-sleep = <5>;
 			};
 		};
 	};
