@@ -37,6 +37,11 @@
 		qcom,mdss-clk-factor = <5 4>;		/* 1.25 times */
 		qcom,mdss-ib-factor-overlap = <7 4>;	/* 1.75 times  */
 
+
+		/* Clock levels */
+		qcom,mdss-clk-levels = <92310000 100000000
+				    133330000 177780000 200000000 320000000>;
+
 		qcom,max-clk-rate = <320000000>;
 		qcom,mdss-pipe-vig-off = <0x00001200 0x00001600
 					       0x00001A00>;
@@ -214,7 +219,11 @@
 		reg = 	<0xfd922e00 0x1f8>,
 			<0xfd923100 0x2b0>,
 			<0xfdf30000 0x108>;
+/*		reg-names = "dsi_ctrl", "dsi_phy", "mmss_misc_phys";
 		gdsc-supply = <&gdsc_mdss>;
+		vdda-supply = <&pm8941_l2>;
+		vdd-supply = <&pm8941_l22>;
+		vddio-supply = <&pm8941_l12>; */
 		qcom,mdss-fb-map = <&mdss_fb0>;
 		qcom,mdss-mdp = <&mdss_mdp>;
 		qcom,platform-strength-ctrl = [ff 06];
@@ -229,7 +238,7 @@
 		qcom,mmss-ulp-clamp-ctrl-offset = <0x14>;
 		qcom,mmss-phyreset-ctrl-offset = <0x108>;
 
-		qcom,core-supply-entries {
+/*		qcom,core-supply-entries {
 			#address-cells = <1>;
 			#size-cells = <0>;
 
@@ -246,6 +255,45 @@
 				qcom,supply-post-off-sleep = <0>;
 			};
 		};
+
+		qcom,ctrl-supply-entries {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			qcom,ctrl-supply-entry@0 {
+				reg = <0>;
+				qcom,supply-name = "vdda";
+				qcom,supply-min-voltage = <1200000>;
+				qcom,supply-max-voltage = <1200000>;
+				qcom,supply-enable-load = <100000>;
+				qcom,supply-disable-load = <100>;
+			};
+		};
+
+		qcom,panel-supply-entries {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			qcom,panel-supply-entry@0 {
+				reg = <0>;
+				qcom,supply-name = "vdd";
+				qcom,supply-min-voltage = <3000000>;
+				qcom,supply-max-voltage = <3000000>;
+				qcom,supply-enable-load = <100000>;
+				qcom,supply-disable-load = <100>;
+				qcom,supply-post-on-sleep = <5>;
+			};
+
+			qcom,panel-supply-entry@1 {
+				reg = <1>;
+				qcom,supply-name = "vddio";
+				qcom,supply-min-voltage = <1800000>;
+				qcom,supply-max-voltage = <1800000>;
+				qcom,supply-enable-load = <100000>;
+				qcom,supply-disable-load = <100>;
+				qcom,supply-post-on-sleep = <5>;
+			};
+		}; */
 	};
 
 	mdss_hdmi_tx: qcom,hdmi_tx@fd922100 {

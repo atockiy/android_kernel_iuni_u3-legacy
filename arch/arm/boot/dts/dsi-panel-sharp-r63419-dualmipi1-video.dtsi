@@ -53,5 +53,53 @@
 		qcom,mdss-dsi-bl-max-level = <255>;
 		qcom,mdss-dsi-dma-trigger = "trigger_sw";
 		qcom,mdss-dsi-mdp-trigger = "none";
+	
+
+		qcom,mdss-dsi-on-command = [
+			29 01 00 00 00 00 02 
+				b0 00
+			29 01 00 00 00 00 02 
+				d6 01
+			29 01 00 00 00 00 04
+				b3 18 00 00
+			29 01 00 00 00 00 08
+                                ba b5 32 41 64 23 a0 a0
+			29 01 00 00 00 00 14
+                                c8 01 02 ff 00 fe 68 00 02 ff 00 fe b0 00 02 ff 00 fe fc 00
+			29 01 00 00 00 00 25
+				CA 81 e5 80 80 80 80 a0 08 20 80 FF 00 00 00 00 00 00 00 0A 
+				4A 37 A0 55 F8 0C 0C 20 10 3F 3F 10 10 3F 3F 3F 3F
+			29 01 00 00 00 00 10
+                                cb e6 e0 c7 63 00 00 00 00 40 00 80 00 e8 00 00
+			/* Set Column address */
+			39 01 00 00 00 00 05 
+				2a 00 00 05 9f
+			39 01 00 00 00 00 05 
+				2b 00 00 09 ff
+			/* Set page address */
+			15 01 00 00 00 00 02 
+				35 00
+			/* Set tear on */
+			15 01 00 00 00 00 02 
+				51 ff
+			/* write display brightness */
+			15 01 00 00 00 00 02 
+				53 24
+			 /* write control brightness */
+			15 01 00 00 00 00 02 
+				55 83
+			/* CABC brightness */
+			29 01 00 00 00 00 02 
+				b0 03
+			05 01 00 00 10 00 02
+				29 00
+			/* Set display on, wait 16ms */
+			05 01 00 00 78 00 02 
+				11 00
+			];
+		qcom,mdss-dsi-on-command-state = "dsi_lp_mode";
+		qcom,mdss-dsi-off-command = [05 01 00 00 32 00 02 28 00
+					05 01 00 00 78 00 02 10 00];
+		qcom,mdss-dsi-off-command-state = "dsi_hs_mode";
 	};
 };

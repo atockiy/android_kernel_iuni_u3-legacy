@@ -172,8 +172,15 @@ static int mdss_mdp_cmd_tearcheck_cfg(struct mdss_mdp_ctl *ctl,
 	mdss_mdp_pingpong_write(mixer,
 		MDSS_MDP_REG_PP_SYNC_CONFIG_VSYNC, cfg);
 	mdss_mdp_pingpong_write(mixer,
+/*Gionee guoshite 20140905 modify 0xfff0 to (ctx->height + 20) for black screen ,but hardly to repeat start */
+#ifdef CONFIG_GN_Q_BSP_LCD_TE_ANALOG_SUPPORT
+		MDSS_MDP_REG_PP_SYNC_CONFIG_HEIGHT,
+		te ? te->sync_cfg_height : 20);
+#else
 		MDSS_MDP_REG_PP_SYNC_CONFIG_HEIGHT,
 		te ? te->sync_cfg_height : 0);
+#endif
+/*Gionee guoshite 20140905 modify 0xfff0 to (ctx->height + 20) for black screen ,but hardly to repeat end */
 	mdss_mdp_pingpong_write(mixer,
 		MDSS_MDP_REG_PP_VSYNC_INIT_VAL,
 		te ? te->vsync_init_val : 0);

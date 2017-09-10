@@ -94,7 +94,7 @@ enum dsi_panel_bl_ctrl {
 	BL_DCS_CMD,
 /*Gionee xiangzhong 2013-12-16 add for lm3630 backlight begin*/
 #ifdef CONFIG_GN_Q_BSP_BACKLIGHT_LM3630_SUPPORT
-        BL_LM3630,
+	BL_LM3630,
 #endif
 /*Gionee xiangzhong 2013-12-16 add for lm3630 backlight end*/
 	UNKNOWN_CTRL,
@@ -307,7 +307,7 @@ struct mdss_dsi_ctrl_pdata {
 /*Gionee xiangzhong 2014-04-30 add for iovcc control by gpio begin*/
 /*Gionee xiangzhong 2013-11-11 add for tps65132  begin*/
 #if defined(CONFIG_GN_Q_BSP_LCD_TPS65132_SUPPORT)
-        int tps_en_gpio;
+	int tps_en_gpio;
 #endif
 /*Gionee xiangzhong 2013-11-11 add for tps65132  end*/
 	int mode_gpio;
