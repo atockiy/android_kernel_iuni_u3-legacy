@@ -277,7 +277,7 @@
 
 	qcom,mdss_wb_panel {
 		compatible = "qcom,mdss_wb";
-		qcom,mdss_pan_res = <1920 1080>;
+		qcom,mdss_pan_res = <1440 2560>;
 		qcom,mdss_pan_bpp = <24>;
 		qcom,mdss-fb-map = <&mdss_fb2>;
 	};

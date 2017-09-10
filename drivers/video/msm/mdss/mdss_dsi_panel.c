@@ -269,7 +269,7 @@ int mdss_dsi_panel_reset(struct mdss_panel_data *pdata, int enable)
 {
 	struct mdss_dsi_ctrl_pdata *ctrl_pdata = NULL;
 	struct mdss_panel_info *pinfo = NULL;
-	int rc = 0;
+	int i, rc = 0;
 
 	if (pdata == NULL) {
 		pr_err("%s: Invalid input data\n", __func__);
@@ -300,18 +300,31 @@ int mdss_dsi_panel_reset(struct mdss_panel_data *pdata, int enable)
 	pr_debug("%s: enable = %d\n", __func__, enable);
 	pinfo = &(ctrl_pdata->panel_data.panel_info);
 
+	if (enable) {
+#ifdef CONFIG_GN_Q_BSP_LCD_IOVCC_CONTROL_SUPPORT //test begin
+		if (gpio_is_valid(ctrl_pdata->disp_en_gpio) &&
+				gpio_is_valid(ctrl_pdata->rst_gpio)) {
+#endif //test end
 /*Gionee xiangzhong 2014-04-30 add for iovcc control by gpio begin*/
 #if defined(CONFIG_GN_Q_BSP_LCD_IOVCC_CONTROL_SUPPORT)
 	lcd_vendor_check();
 #endif
 /*Gionee xiangzhong 2014-04-30 add for iovcc control by gpio end*/
-	if (enable) {
 		rc = mdss_dsi_request_gpios(ctrl_pdata);
 		if (rc) {
 			pr_err("gpio request failed\n");
 			return rc;
 		}
 		if (!pinfo->cont_splash_enabled) {
+			if (gpio_is_valid(ctrl_pdata->disp_en_gpio))
+				gpio_set_value((ctrl_pdata->disp_en_gpio), 1);
+
+			for (i = 0; i < pdata->panel_info.rst_seq_len; ++i) {
+				gpio_set_value((ctrl_pdata->rst_gpio),
+					pdata->panel_info.rst_seq[i]);
+				if (pdata->panel_info.rst_seq[++i])
+					usleep(pinfo->rst_seq[i] * 1000);
+			}
 /*Gionee xiangzhong 2014-04-30 add for iovcc control by gpio begin*/
 #if defined(CONFIG_GN_Q_BSP_LCD_IOVCC_CONTROL_SUPPORT)
 		printk("mdss enable iovcc\n");
@@ -366,6 +379,9 @@ int mdss_dsi_panel_reset(struct mdss_panel_data *pdata, int enable)
 			else if (pinfo->mode_gpio_state == MODE_GPIO_LOW)
 				gpio_set_value((ctrl_pdata->mode_gpio), 0);
 		}
+#ifdef CONFIG_GN_Q_BSP_LCD_IOVCC_CONTROL_SUPPORT
+		}
+#endif
 		if (ctrl_pdata->ctrl_state & CTRL_STATE_PANEL_INIT) {
 			pr_debug("%s: Panel Not properly turned OFF\n",
 						__func__);
@@ -399,6 +415,12 @@ int mdss_dsi_panel_reset(struct mdss_panel_data *pdata, int enable)
 			gpio_set_value((ctrl_pdata->disp_en_gpio), 0);
 			gpio_free(ctrl_pdata->disp_en_gpio);
 		}
+		if (gpio_is_valid(ctrl_pdata->rst_gpio)) {
+			gpio_set_value((ctrl_pdata->rst_gpio), 0);
+			gpio_free(ctrl_pdata->rst_gpio);
+		}
+		if (gpio_is_valid(ctrl_pdata->mode_gpio))
+			gpio_free(ctrl_pdata->mode_gpio);
 /*Gionee xiangzhong 2014-04-30 add for iovcc control by gpio begin*/
 #if defined(CONFIG_GN_Q_BSP_LCD_IOVCC_CONTROL_SUPPORT)
 		mdelay(100);
