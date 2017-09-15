@@ -1518,27 +1518,6 @@ int dsi_panel_device_register(struct device_node *pan_node,
 		pr_err("%s:%d, Disp_en gpio not specified\n",
 						__func__, __LINE__);
 
-/*Gionee xiangzhong 2013-11-11 add for tps65132  begin*/
-#if defined(CONFIG_GN_Q_BSP_LCD_TPS65132_SUPPORT)
-	ctrl_pdata->tps_en_gpio = of_get_named_gpio(ctrl_pdev->dev.of_node,
-		"qcom,tps-enable-gpio", 0);
-
-	 if (!gpio_is_valid(ctrl_pdata->tps_en_gpio))
-		pr_err("%s:%d, tps enable gpio not specified\n",
-						__func__, __LINE__);
-
-#endif
-/*Gionee xiangzhong 2013-11-11 add for tps65132  end*/
-/*Gionee xiangzhong 2014-04-30 add for iovcc control by gpio begin*/	
-#if defined(CONFIG_GN_Q_BSP_LCD_IOVCC_CONTROL_SUPPORT)
-	ctrl_pdata->iovcc_enable_gpio = of_get_named_gpio(ctrl_pdev->dev.of_node,
-		"qcom,iovcc-enable-gpio", 0);
-	if (!gpio_is_valid(ctrl_pdata->iovcc_enable_gpio))
-		pr_err("%s:%d, iovcc enable gpio not specified\n",
-						__func__, __LINE__);
-
-#endif
-/*Gionee xiangzhong 2014-04-30 add for iovcc control by gpio begin*/	
 	ctrl_pdata->rst_gpio = of_get_named_gpio(ctrl_pdev->dev.of_node,
 			 "qcom,platform-reset-gpio", 0);
 	if (!gpio_is_valid(ctrl_pdata->rst_gpio))
@@ -1556,6 +1535,33 @@ int dsi_panel_device_register(struct device_node *pan_node,
 	} else {
 		ctrl_pdata->mode_gpio = -EINVAL;
 	}
+
+#ifdef CONFIG_GN_Q_BSP_LCD_IOVCC_CONTROL_SUPPORT
+	ctrl_pdata->iovcc_enable_gpio = of_get_named_gpio(ctrl_pdev->dev.of_node,
+			  "qcom,iovcc-enable-gpio", 0);
+	if (gpio_is_valid(ctrl_pdata->iovcc_enable_gpio)) {
+		rc = gpio_request(ctrl_pdata->iovcc_enable_gpio, "iovcc-enable");
+		if (rc) {
+			pr_err("request IOVCC EN gpio failed, rc=%d\n", rc);
+			return -ENODEV;
+		}
+		rc = gpio_tlmm_config(GPIO_CFG(
+					ctrl_pdata->iovcc_enable_gpio, 0,
+					GPIO_CFG_OUTPUT,
+					GPIO_CFG_NO_PULL,
+					GPIO_CFG_8MA),
+				GPIO_CFG_DISABLE);
+		if (rc) {
+			pr_err("%s: unable to config tlmm = %d\n",
+					__func__, ctrl_pdata->iovcc_enable_gpio);
+			gpio_free(ctrl_pdata->iovcc_enable_gpio);
+			return -ENODEV;
+		}
+	} else {
+		pr_err("%s:%d, iovcc enable gpio not specified\n",
+						__func__, __LINE__);
+	}
+#endif
 
 	if (mdss_dsi_clk_init(ctrl_pdev, ctrl_pdata)) {
 		pr_err("%s: unable to initialize Dsi ctrl clks\n", __func__);

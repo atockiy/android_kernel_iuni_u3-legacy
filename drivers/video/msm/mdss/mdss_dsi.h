@@ -305,11 +305,6 @@ struct mdss_dsi_ctrl_pdata {
 	int iovcc_enable_gpio;
 #endif
 /*Gionee xiangzhong 2014-04-30 add for iovcc control by gpio begin*/
-/*Gionee xiangzhong 2013-11-11 add for tps65132  begin*/
-#if defined(CONFIG_GN_Q_BSP_LCD_TPS65132_SUPPORT)
-	int tps_en_gpio;
-#endif
-/*Gionee xiangzhong 2013-11-11 add for tps65132  end*/
 	int mode_gpio;
 	int bklt_ctrl;	/* backlight ctrl */
 	int pwm_period;
@@ -436,11 +431,6 @@ int mdss_panel_get_dst_fmt(u32 bpp, char mipi_mode, u32 pixel_packing,
 void set_backlight_lm3630(unsigned int level);
 #endif
 /*Gionee xiangzhong 2013-12-16 add for lm3630 backlight begin*/
-/*Gionee xiangzhong 2013-09-30 add for tps65132 begin*/
-#if defined(CONFIG_GN_Q_BSP_LCD_TPS65132_SUPPORT)
-void tps65132_set_vol(char vol_buf[]);
-#endif
-/*Gionee xiangzhong 2013-09-30 add for tps65132 end*/
 
 int mdss_dsi_register_recovery_handler(struct mdss_dsi_ctrl_pdata *ctrl,
 		struct mdss_panel_recovery *recovery);
